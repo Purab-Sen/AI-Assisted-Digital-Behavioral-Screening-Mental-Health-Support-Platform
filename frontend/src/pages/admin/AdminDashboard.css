@@ -1,0 +1,96 @@
+/* AdminDashboard.css - Modern, clean dashboard styles */
+
+.admin-dashboard {
+  background: #f7f8fa;
+  min-height: 100vh;
+  padding: 2rem 0;
+}
+
+.admin-dashboard h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #22223b;
+  margin-bottom: 0.5rem;
+}
+
+.admin-dashboard p {
+  color: #4a5568;
+  margin-bottom: 2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.stat-title {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #22223b;
+}
+
+.stat-subtitle {
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.card-section {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.role-list, .risk-list {
+  margin-top: 1rem;
+}
+
+.role-item, .risk-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.role-item:last-child, .risk-item:last-child {
+  border-bottom: none;
+}
+
+.quick-actions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.quick-actions a {
+  background: #4f46e5;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.quick-actions a:hover {
+  background: #3730a3;
+}

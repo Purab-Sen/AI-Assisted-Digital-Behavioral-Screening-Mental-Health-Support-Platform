@@ -1,0 +1,390 @@
+/* TaskHistory Page Styles */
+
+.task-history-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.history-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.history-header h1 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.history-header p {
+  color: #7f8c8d;
+}
+
+/* Stats Overview */
+.stats-overview {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  text-align: center;
+  color: white;
+  min-width: 150px;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.stat-text {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* Progress Section */
+.progress-section {
+  margin-bottom: 2.5rem;
+}
+
+.progress-section h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.progress-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.progress-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.progress-header .task-icon {
+  font-size: 1.5rem;
+}
+
+.progress-header h3 {
+  font-size: 1rem;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.progress-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-stat .label {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+}
+
+.progress-stat .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.trend-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+.trend-badge.improving {
+  background: #d4edda;
+  color: #155724;
+}
+
+.trend-badge.stable {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.trend-badge.declining {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Sessions Section */
+.sessions-section {
+  margin-bottom: 2rem;
+}
+
+.sessions-section h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.no-history {
+  text-align: center;
+  padding: 3rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.no-history p {
+  color: #7f8c8d;
+  margin-bottom: 1rem;
+}
+
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.session-item {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.session-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.session-header:hover {
+  background: #f8f9fa;
+}
+
+.session-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.session-info {
+  flex: 1;
+}
+
+.session-info h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.session-date {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.session-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.session-status .score {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.session-status .status {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status.complete {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.incomplete {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.expand-icon {
+  margin-left: 0.75rem;
+  color: #7f8c8d;
+  font-size: 0.75rem;
+}
+
+/* Session Details */
+.session-details {
+  padding: 1rem 1.25rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  background: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.detail-item .label {
+  display: block;
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  text-transform: capitalize;
+  margin-bottom: 0.25rem;
+}
+
+.detail-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.session-details .interpretation {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.session-details .interpretation p {
+  margin: 0.25rem 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Actions */
+.history-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Loading and Error */
+.loading {
+  text-align: center;
+  padding: 4rem;
+  color: #7f8c8d;
+  font-size: 1.2rem;
+}
+
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  background: #f8d7da;
+  color: #721c24;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .task-history-page {
+    padding: 1rem;
+  }
+
+  .stats-overview {
+    flex-direction: column;
+  }
+
+  .stat-box {
+    width: 100%;
+  }
+
+  .progress-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .session-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .session-status {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .history-actions {
+    flex-direction: column;
+  }
+
+  .history-actions .btn {
+    width: 100%;
+  }
+}

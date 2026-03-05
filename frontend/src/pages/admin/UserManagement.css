@@ -1,0 +1,194 @@
+/* =========================================
+   UserManagement.css - Clean Professional Admin
+========================================= */
+
+@import './AdminDashboard.css';
+
+/* =========================================
+   Page Background
+========================================= */
+
+body {
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+/* =========================================
+   Card Containers
+========================================= */
+
+.bg-white {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.rounded-lg {
+  border-radius: 10px;
+}
+
+/* =========================================
+   Headings
+========================================= */
+
+h1 {
+  font-weight: 600;
+  color: #111827;
+}
+
+p {
+  color: #6b7280;
+}
+
+/* =========================================
+   Table Styling
+========================================= */
+
+.min-w-full {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.min-w-full thead {
+  background-color: #f9fafb;
+}
+
+table.min-w-full th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+table.min-w-full td {
+  padding: 16px;
+  font-size: 14px;
+  color: #374151;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+table.min-w-full tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* =========================================
+   Avatar
+========================================= */
+
+.patient-avatar {
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================
+   Inputs & Selects
+========================================= */
+
+input,
+select {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  font-size: 14px;
+  color: #374151 !important;
+  padding: 8px 10px;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+  outline: none;
+}
+
+/* =========================================
+   Buttons
+========================================= */
+
+button {
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px !important;
+  transition: all 0.2s ease;
+}
+
+/* Primary Button */
+.bg-indigo-600 {
+  background-color: #4f46e5 !important;
+  border: none !important;
+}
+
+.bg-indigo-600:hover {
+  background-color: #4338ca !important;
+}
+
+/* Verify Button */
+.bg-blue-600 {
+  background-color: #2563eb !important;
+}
+
+.bg-blue-600:hover {
+  background-color: #1d4ed8 !important;
+}
+
+/* Status Buttons */
+.bg-green-100 {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+.bg-red-100 {
+  background-color: #fef2f2 !important;
+  color: #7f1d1d !important;
+}
+
+/* Delete Button */
+.text-red-600 {
+  color: #dc2626 !important;
+}
+
+.text-red-600:hover {
+  color: #991b1b !important;
+}
+
+/* =========================================
+   Pagination
+========================================= */
+
+.bg-gray-50 {
+  background-color: #f9fafb !important;
+  border-top: 1px solid #e5e7eb;
+}
+
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+/* =========================================
+   Loading Spinner
+========================================= */
+
+.animate-spin {
+  border-color: #e5e7eb;
+  border-top-color: #4f46e5 !important;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

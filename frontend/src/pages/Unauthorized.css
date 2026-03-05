@@ -1,0 +1,38 @@
+/* Unauthorized.css - basic styles for the access denied page */
+.unauthorized-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  background-color: #f9fafb;
+  padding: 2rem;
+}
+
+.unauthorized-card {
+  max-width: 28rem;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+}
+
+.unauthorized-card h1 {
+  color: #111827;
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.unauthorized-card p {
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.unauthorized-actions a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: #4f46e5;
+  color: #ffffff;
+  text-decoration: none;
+}

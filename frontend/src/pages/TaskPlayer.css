@@ -1,0 +1,456 @@
+/* TaskPlayer Styles */
+
+.task-player {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  padding: 1rem;
+}
+
+/* Loading */
+.loading {
+  font-size: 1.5rem;
+  color: #a0a0a0;
+}
+
+/* Error */
+.error-container {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.error-container h2 {
+  color: #e74c3c;
+  margin-bottom: 1rem;
+}
+
+/* Instructions Screen */
+.instructions-screen {
+  max-width: 600px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.instructions-screen h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.instructions-content {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.instructions-content pre {
+  white-space: pre-wrap;
+  font-family: inherit;
+  line-height: 1.8;
+  color: #e0e0e0;
+}
+
+.btn-large {
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+/* Task Header */
+.task-header {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.task-header h2 {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.2rem;
+}
+
+/* Task Arena - Common */
+.task-arena {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.3s ease;
+}
+
+.task-hint {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  margin-top: 2rem;
+}
+
+/* Attention Task */
+.stimulus-area {
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stimulus-area:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shape {
+  width: 100px;
+  height: 100px;
+  transition: all 0.2s;
+}
+
+.shape.circle {
+  border-radius: 50%;
+  background: #3498db;
+}
+
+.shape.square {
+  background: #e74c3c;
+}
+
+.shape.triangle {
+  width: 0;
+  height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 100px solid #2ecc71;
+  background: transparent;
+}
+
+/* Memory Task */
+.memory-task {
+  max-width: 500px;
+}
+
+.memory-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.memory-grid {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 350px;
+  aspect-ratio: 1;
+}
+
+.memory-cell {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.memory-cell:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.memory-cell.active {
+  background: #3498db;
+  transform: scale(0.95);
+}
+
+.memory-cell.selected {
+  background: #667eea;
+}
+
+/* Processing Speed Task */
+.timer-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+  transition: width 1s linear;
+}
+
+.timer-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.symbol-pair {
+  display: flex;
+  gap: 3rem;
+  margin: 2rem 0;
+}
+
+.symbol {
+  font-size: 4rem;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.response-buttons {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.btn-same, .btn-different {
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-same {
+  background: #2ecc71;
+  color: white;
+}
+
+.btn-different {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-same:hover, .btn-different:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.score-display {
+  margin-top: 2rem;
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Response Inhibition Task */
+.go-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.go-circle.go {
+  background: #2ecc71;
+  box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+}
+
+.go-circle.nogo {
+  background: #e74c3c;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+}
+
+/* Generic Task */
+.generic-task p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Results Screen */
+.results-screen {
+  max-width: 600px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.results-screen h1 {
+  font-size: 2.5rem;
+  color: #2ecc71;
+  margin-bottom: 0.5rem;
+}
+
+.results-screen h2 {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+}
+
+.results-summary {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.results-summary h3 {
+  margin-bottom: 1.5rem;
+  color: #667eea;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-name {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: capitalize;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.interpretation {
+  text-align: left;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.interpretation h4 {
+  margin-bottom: 0.75rem;
+  color: #764ba2;
+}
+
+.interpretation ul {
+  list-style: none;
+  padding: 0;
+}
+
+.interpretation li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.interpretation li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #667eea;
+}
+
+.results-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .instructions-screen h1 {
+    font-size: 1.8rem;
+  }
+  
+  .stimulus-area {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .shape {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .symbol {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .results-actions {
+    flex-direction: column;
+  }
+  
+  .results-actions .btn {
+    width: 100%;
+  }
+}
