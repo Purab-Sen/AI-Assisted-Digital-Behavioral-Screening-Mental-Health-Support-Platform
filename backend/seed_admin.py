@@ -10,7 +10,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.database import SessionLocal
+import app.models  # noqa: F401 — registers all ORM models
+from app.database import SessionLocal, create_tables
 from app.models.user import User, UserRole
 from app.utils.security import get_password_hash
 from app.utils.logging import get_logger
@@ -20,6 +21,7 @@ logger = get_logger(__name__)
 
 def create_admin():
     """Create the first admin user."""
+    create_tables()  # ensure tables exist
     db = SessionLocal()
     
     try:

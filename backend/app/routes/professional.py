@@ -17,6 +17,8 @@ from app.models.professional import (
 )
 from app.models.screening import ScreeningSession
 from app.models.analysis import UserAnalysisSnapshot
+from app.models.journal import JournalEntry
+from app.models.task import TaskSession
 from app.schemas.professional import (
     ProfessionalProfileCreate,
     ProfessionalProfileResponse,
@@ -29,6 +31,7 @@ from app.schemas.professional import (
     PatientDetailView
 )
 from app.utils.dependencies import get_professional_user, get_current_user
+from app.routes.notifications import create_notification
 
 router = APIRouter(prefix="/professional", tags=["Professional"])
 
@@ -120,6 +123,62 @@ async def update_professional_profile(
 
 
 # =============================================================================
+# Professional Stats
+# =============================================================================
+
+@router.get("/stats")
+async def get_professional_stats(
+    professional: User = Depends(get_professional_user),
+    db: Session = Depends(get_db)
+):
+    """Get aggregated stats for the professional dashboard."""
+    # Accepted patient IDs
+    patient_ids = [
+        r.user_id for r in db.query(ConsultationRequest.user_id).filter(
+            ConsultationRequest.professional_id == professional.id,
+            ConsultationRequest.status == "accepted"
+        ).all()
+    ]
+    total_patients = len(patient_ids)
+    active_patients = total_patients  # all accepted are active
+
+    total_screenings = 0
+    completed_screenings = 0
+    total_journal_entries = 0
+    total_task_sessions = 0
+    completed_task_sessions = 0
+
+    if patient_ids:
+        total_screenings = db.query(func.count(ScreeningSession.id)).filter(
+            ScreeningSession.user_id.in_(patient_ids)
+        ).scalar() or 0
+        completed_screenings = db.query(func.count(ScreeningSession.id)).filter(
+            ScreeningSession.user_id.in_(patient_ids),
+            ScreeningSession.completed_at.isnot(None)
+        ).scalar() or 0
+        total_journal_entries = db.query(func.count(JournalEntry.id)).filter(
+            JournalEntry.user_id.in_(patient_ids)
+        ).scalar() or 0
+        total_task_sessions = db.query(func.count(TaskSession.id)).filter(
+            TaskSession.user_id.in_(patient_ids)
+        ).scalar() or 0
+        completed_task_sessions = db.query(func.count(TaskSession.id)).filter(
+            TaskSession.user_id.in_(patient_ids),
+            TaskSession.completed_at.isnot(None)
+        ).scalar() or 0
+
+    return {
+        "total_patients": total_patients,
+        "active_patients": active_patients,
+        "total_screenings": total_screenings,
+        "completed_screenings": completed_screenings,
+        "total_journal_entries": total_journal_entries,
+        "total_task_sessions": total_task_sessions,
+        "completed_task_sessions": completed_task_sessions,
+    }
+
+
+# =============================================================================
 # Consultation Requests (User shares data with professional)
 # =============================================================================
 
@@ -184,7 +243,23 @@ async def update_consultation_request(
     consultation.status = new_status
     db.commit()
     db.refresh(consultation)
-    
+
+    # Notify the patient about the decision
+    if new_status == "accepted":
+        create_notification(
+            db, consultation.user_id, "consultation_accepted",
+            "Consultation Accepted",
+            f"Dr. {professional.first_name} {professional.last_name} has accepted your data-sharing request.",
+            "/connect-professional"
+        )
+    elif new_status == "declined":
+        create_notification(
+            db, consultation.user_id, "consultation_declined",
+            "Consultation Declined",
+            f"Dr. {professional.first_name} {professional.last_name} has declined your data-sharing request.",
+            "/connect-professional"
+        )
+
     return consultation
 
 
@@ -344,7 +419,15 @@ async def add_professional_note(
     db.add(note)
     db.commit()
     db.refresh(note)
-    
+
+    # Notify the patient
+    create_notification(
+        db, patient_id, "note_added",
+        "New Professional Note",
+        f"Dr. {professional.first_name} {professional.last_name} has added a note to your profile.",
+        "/dashboard"
+    )
+
     return note
 
 

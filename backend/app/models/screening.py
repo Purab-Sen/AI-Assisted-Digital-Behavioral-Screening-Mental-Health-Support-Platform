@@ -22,17 +22,31 @@ class ScreeningSession(Base):
     risk_level = Column(SQLEnum(RiskLevel), nullable=True)
     ml_risk_score = Column(Float, nullable=True)
     model_version = Column(String(50), nullable=True)
+    # Pre-screening info
+    family_asd = Column(String(10), nullable=True)          # "yes" / "no"
+    jaundice = Column(String(10), nullable=True)             # "yes" / "no"
+    completed_by = Column(String(50), nullable=True)         # who completed the test
+    age_group_used = Column(String(20), nullable=True)       # child/adolescent/adult
 
     user = relationship("User", back_populates="screening_sessions")
     responses = relationship("ScreeningResponse", back_populates="screening_session", cascade="all, delete-orphan")
+
+
+class AgeGroup(str, enum.Enum):
+    CHILD = "child"
+    ADOLESCENT = "adolescent"
+    ADULT = "adult"
+    ALL = "all"
 
 
 class Question(Base):
     __tablename__ = "questions"
 
     id = Column(Integer, primary_key=True, index=True)
+    label = Column(String(20), nullable=True)       # e.g. "AQ1", "AQ2"
     text = Column(Text, nullable=False)
     category = Column(String(100), nullable=True)
+    age_group = Column(SQLEnum(AgeGroup), default=AgeGroup.ALL, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     options = relationship("Option", back_populates="question", cascade="all, delete-orphan")

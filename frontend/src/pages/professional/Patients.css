@@ -1,22 +1,17 @@
-/* Patients.css - route-specific styles, importing shared professional dashboard styles */
-@import '../admin/ProfessionalDashboard.css';
-
-.patient-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.patient-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
-}
-
-.patient-item .text-sm {
-  color: #374151;
-}
+/* Patients Page */
+.patients-page { min-height: 100vh; background: var(--bg); }
+.page-content { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; animation: fadeInUp 0.4s ease both; }
+.page-title { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 6px; }
+.page-subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 32px; }
+.section-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 24px; }
+.patient-list-table { display: flex; flex-direction: column; gap: 10px; }
+.patient-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: var(--bg); border-radius: var(--radius-md); border: 1px solid var(--border); gap: 12px; flex-wrap: wrap; transition: all var(--transition-fast); }
+.patient-row:hover { background: #f0f4ff; border-color: rgba(99,102,241,0.2); }
+.patient-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.patient-info { flex: 1; }
+.patient-name { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.patient-email { font-size: 13px; color: var(--text-muted); }
+.patient-link { color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none; padding: 6px 14px; border-radius: var(--radius-md); border: 1.5px solid var(--primary); transition: all var(--transition-fast); }
+.patient-link:hover { background: rgba(99,102,241,0.06); }
+.empty-patients { text-align: center; padding: 48px; color: var(--text-secondary); }
+.page-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }

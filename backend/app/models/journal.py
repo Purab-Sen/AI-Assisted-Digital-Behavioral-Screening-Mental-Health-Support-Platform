@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -12,6 +12,7 @@ class JournalEntry(Base):
     content = Column(Text, nullable=False)
     mood_rating = Column(Integer, nullable=True)
     stress_rating = Column(Integer, nullable=True)
+    is_shared = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="journal_entries")

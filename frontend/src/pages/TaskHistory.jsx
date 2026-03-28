@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import taskService from '../services/taskService';
+import NavBar from '../components/NavBar';
 import './TaskHistory.css';
 
 const TASK_ICONS = {
@@ -106,6 +107,7 @@ function TaskHistory() {
 
   return (
     <div className="task-history-page">
+      <NavBar />
       <div className="history-header">
         <h1>Task History</h1>
         <p>Your behavioral task performance over time</p>

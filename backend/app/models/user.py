@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum as SQLEnum, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -19,6 +19,9 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
+    date_of_birth = Column(Date, nullable=True)
+    gender = Column(String(50), nullable=True)
+    ethnicity = Column(String(100), nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

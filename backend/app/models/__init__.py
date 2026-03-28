@@ -11,6 +11,7 @@ from app.models.professional import (
     ProfessionalNote
 )
 from app.models.consent import ConsentLog
+from app.models.notification import Notification
 
 __all__ = [
     "User",
@@ -35,4 +36,5 @@ __all__ = [
     "ConsultationStatus",
     "ProfessionalNote",
     "ConsentLog",
+    "Notification",
 ]

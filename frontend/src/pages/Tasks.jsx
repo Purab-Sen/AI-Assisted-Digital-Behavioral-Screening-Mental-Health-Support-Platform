@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import taskService from '../services/taskService';
+import NavBar from '../components/NavBar';
 import './Tasks.css';
 
 const TASK_ICONS = {
@@ -93,6 +94,7 @@ function Tasks() {
 
   return (
     <div className="tasks-page">
+      <NavBar />
       <div className="tasks-header">
         <h1>Behavioral Tasks</h1>
         <p>Complete interactive tasks to assess cognitive abilities</p>

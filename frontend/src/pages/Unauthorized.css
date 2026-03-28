@@ -1,38 +1,9 @@
-/* Unauthorized.css - basic styles for the access denied page */
-.unauthorized-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  background-color: #f9fafb;
-  padding: 2rem;
-}
-
-.unauthorized-card {
-  max-width: 28rem;
-  text-align: center;
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 6px 18px rgba(16,24,40,0.06);
-}
-
-.unauthorized-card h1 {
-  color: #111827;
-  font-size: 1.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.unauthorized-card p {
-  color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-.unauthorized-actions a {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  background-color: #4f46e5;
-  color: #ffffff;
-  text-decoration: none;
-}
+/* Unauthorized Page */
+.unauthorized-page { min-height: 100vh; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.unauthorized-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-xl); padding: 56px 40px; max-width: 460px; width: 100%; text-align: center; animation: scaleIn 0.4s ease both; }
+.unauthorized-icon { font-size: 64px; margin-bottom: 24px; display: block; animation: float 3s ease-in-out infinite; }
+.unauthorized-card h1 { font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.5px; }
+.unauthorized-card p { color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 28px; }
+.role-pill { display: inline-block; background: rgba(99,102,241,0.1); color: var(--primary); padding: 4px 14px; border-radius: var(--radius-full); font-size: 13px; font-weight: 700; text-transform: capitalize; margin-top: 6px; }
+.unauthorized-actions { display: flex; flex-direction: column; gap: 12px; }
+.unauthorized-note { font-size: 13px; color: var(--text-muted); margin-top: 12px; }

@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models.user import User, UserRole
-from app.models.professional import ConsultationRequest, ConsultationStatus
+from app.models.professional import ConsultationRequest, ConsultationStatus, ProfessionalProfile
 from app.models.screening import ScreeningSession
 from app.models.journal import JournalEntry
 from app.models.task import TaskSession
+from app.models.recommendation import Resource, ResourceType, RiskLevel
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.admin import (
     UserListResponse,
@@ -23,13 +24,35 @@ from app.schemas.admin import (
     PaginatedUsers
 )
 from app.schemas.professional import ConsultationRequestResponse
+from app.schemas.professional import ProfessionalProfileResponse
 from app.utils.dependencies import get_admin_user
 from pydantic import BaseModel
-from app.models.professional import ProfessionalProfile
 
 
 class ProfessionalVerifyRequest(BaseModel):
     is_verified: bool
+
+
+class ResourceCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    type: str
+    content_or_url: Optional[str] = None
+    target_risk_level: Optional[str] = None
+
+
+class ResourceResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    type: str
+    content_or_url: Optional[str] = None
+    target_risk_level: Optional[str] = None
+    uploaded_by: Optional[int] = None
+    patient_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -78,9 +101,17 @@ async def list_users(
     
     # Get paginated results
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
-    
+
+    def enrich(u: User) -> UserListResponse:
+        data = UserListResponse.model_validate(u)
+        # Attach is_verified and full professional profile if present
+        if u.professional_profile:
+            data.is_verified = u.professional_profile.is_verified
+            data.professional_profile = ProfessionalProfileResponse.model_validate(u.professional_profile)
+        return data
+
     return PaginatedUsers(
-        users=[UserListResponse.model_validate(u) for u in users],
+        users=[enrich(u) for u in users],
         total=total,
         skip=skip,
         limit=limit
@@ -103,7 +134,11 @@ async def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    return user
+    result = UserListResponse.model_validate(user)
+    if user.professional_profile:
+        result.is_verified = user.professional_profile.is_verified
+        result.professional_profile = ProfessionalProfileResponse.model_validate(user.professional_profile)
+    return result
 
 
 # =============================================================================
@@ -255,21 +290,35 @@ async def verify_professional(
     db: Session = Depends(get_db)
 ):
     """
-    Verify or unverify a professional's profile. Admin only.
+    Verify or unverify a professional's profile.
+    When verified, the user's role is promoted to PROFESSIONAL.
+    When unverified, the role is reverted to USER.
+    Admin only.
     """
     profile = db.query(ProfessionalProfile).filter(ProfessionalProfile.user_id == user_id).first()
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professional profile not found")
 
     profile.is_verified = bool(verify.is_verified)
-    db.commit()
-    # return the user object for admin UI convenience
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    # Auto-promote / demote role based on verification status
+    if verify.is_verified:
+        user.role = UserRole.PROFESSIONAL
+    else:
+        user.role = UserRole.USER
+
+    db.commit()
     db.refresh(user)
-    return user
+    db.refresh(profile)
+
+    result = UserListResponse.model_validate(user)
+    result.is_verified = profile.is_verified
+    result.professional_profile = ProfessionalProfileResponse.model_validate(profile)
+    return result
 
 
 # =============================================================================
@@ -376,3 +425,84 @@ async def get_recent_activity(
         "journal_entries": recent_journals,
         "task_sessions": recent_tasks
     }
+
+
+# =============================================================================
+# Resource Management (Admin)
+# =============================================================================
+
+@router.get("/resources", response_model=List[ResourceResponse])
+async def list_resources(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """List all global resources. Admin only."""
+    resources = db.query(Resource).filter(Resource.patient_id == None).order_by(Resource.id.desc()).all()
+    return resources
+
+
+@router.post("/resources", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
+async def create_resource(
+    data: ResourceCreate,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new global resource. Admin only."""
+    resource = Resource(
+        title=data.title,
+        description=data.description,
+        type=data.type,
+        content_or_url=data.content_or_url,
+        target_risk_level=data.target_risk_level or None,
+        uploaded_by=admin.id,
+        patient_id=None
+    )
+    db.add(resource)
+    db.commit()
+    db.refresh(resource)
+    return resource
+
+
+@router.delete("/resources/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_resource(
+    resource_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a resource. Admin only."""
+    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found")
+    db.delete(resource)
+    db.commit()
+    return None
+
+
+# =============================================================================
+# Professional Applications
+# =============================================================================
+
+@router.get("/professional-applications")
+async def list_professional_applications(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """List pending professional applications. Admin only."""
+    profiles = db.query(ProfessionalProfile).filter(
+        ProfessionalProfile.is_verified == False
+    ).all()
+    results = []
+    for p in profiles:
+        user = db.query(User).filter(User.id == p.user_id).first()
+        if user:
+            results.append({
+                "user_id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "license_number": p.license_number,
+                "specialty": p.specialty,
+                "institution": p.institution,
+                "applied_at": p.created_at.isoformat()
+            })
+    return results

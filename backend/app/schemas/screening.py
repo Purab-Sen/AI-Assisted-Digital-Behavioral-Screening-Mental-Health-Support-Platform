@@ -24,6 +24,7 @@ class OptionResponse(BaseModel):
 class QuestionResponse(BaseModel):
     """Question with its options for displaying in questionnaire."""
     id: int
+    label: Optional[str] = None
     text: str
     category: Optional[str]
     options: List[OptionResponse]
@@ -47,6 +48,14 @@ class ScreeningStart(BaseModel):
     session_id: int
     started_at: datetime
     questions: List[QuestionResponse]
+    age_group: Optional[str] = None
+
+
+class ScreeningStartRequest(BaseModel):
+    """Request body for starting a screening with pre-screening data."""
+    family_asd: Optional[str] = None        # "yes" / "no"
+    jaundice: Optional[str] = None           # "yes" / "no"
+    completed_by: Optional[str] = None       # who completed the test
 
 
 class AnswerSubmit(BaseModel):
@@ -85,6 +94,11 @@ class ScreeningResultResponse(BaseModel):
     risk_level: str
     risk_description: str
     ml_risk_score: Optional[float] = None
+    # Pre-screening / profile fields stored with the session
+    family_asd: Optional[str] = None
+    jaundice: Optional[str] = None
+    completed_by: Optional[str] = None
+    age_group_used: Optional[str] = None
     responses: List[ScreeningResponseItem]
     recommendations: List[str]
 
@@ -97,6 +111,11 @@ class ScreeningSessionSummary(BaseModel):
     raw_score: Optional[int]
     risk_level: Optional[str]
     is_complete: bool
+    # Pre-screening / profile fields
+    family_asd: Optional[str] = None
+    jaundice: Optional[str] = None
+    completed_by: Optional[str] = None
+    age_group_used: Optional[str] = None
     
     class Config:
         from_attributes = True

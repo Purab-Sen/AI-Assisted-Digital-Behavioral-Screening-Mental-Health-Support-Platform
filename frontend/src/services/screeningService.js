@@ -25,8 +25,8 @@ export const screeningService = {
   /**
    * Start a new screening session
    */
-  startScreening: async () => {
-    const response = await api.post('/screening/start')
+  startScreening: async (preScreeningData = null) => {
+    const response = await api.post('/screening/start', preScreeningData)
     return response.data
   },
 

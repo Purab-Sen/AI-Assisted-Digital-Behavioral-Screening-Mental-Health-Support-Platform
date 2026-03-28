@@ -13,6 +13,7 @@ from app.schemas.screening import (
     QuestionResponse,
     OptionResponse,
     ScreeningStart,
+    ScreeningStartRequest,
     AnswerSubmit,
     BulkAnswerSubmit,
     ScreeningResultResponse,
@@ -27,6 +28,8 @@ from app.services.screening_service import (
     get_risk_description,
     get_risk_recommendations,
     get_risk_levels_info,
+    get_json_questions,
+    get_age_group,
     AQ10_MAX_SCORE
 )
 from app.utils.dependencies import get_current_active_user
@@ -77,27 +80,53 @@ async def get_risk_levels_info_endpoint(
     )
 
 
+@router.get("/questions-by-age")
+async def get_questions_by_age(
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Get AQ-10 questions from JSON file based on user's age group.
+    Returns questions with labels, options, and scoring values.
+    No DB load — served from cached JSON.
+    """
+    age_group = get_age_group(current_user.date_of_birth)
+    data = get_json_questions(age_group)
+    return data
+
+
 # =============================================================================
 # Screening Session Endpoints
 # =============================================================================
 
 @router.post("/start", response_model=ScreeningStart, status_code=status.HTTP_201_CREATED)
 async def start_screening(
+    body: ScreeningStartRequest = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
     Start a new AQ-10 screening session.
     
+    Accepts optional pre-screening data (family_asd, jaundice, completed_by).
     If an incomplete session exists, it will be resumed.
     Returns the session ID and all questions.
     """
     service = ScreeningService(db)
-    session, questions = service.start_screening(current_user.id)
+    pre_screening = {}
+    if body:
+        pre_screening = {
+            "family_asd": body.family_asd,
+            "jaundice": body.jaundice,
+            "completed_by": body.completed_by,
+        }
+    session, questions, age_group = service.start_screening(
+        current_user.id, user_dob=current_user.date_of_birth, pre_screening=pre_screening
+    )
     
     return ScreeningStart(
         session_id=session.id,
         started_at=session.started_at,
+        age_group=age_group,
         questions=[
             QuestionResponse(
                 id=q.id,
@@ -195,6 +224,10 @@ async def submit_screening(
             risk_level=completed_session.risk_level.value,
             risk_description=get_risk_description(completed_session.risk_level),
             ml_risk_score=completed_session.ml_risk_score,
+            family_asd=completed_session.family_asd,
+            jaundice=completed_session.jaundice,
+            completed_by=completed_session.completed_by,
+            age_group_used=completed_session.age_group_used,
             responses=[ScreeningResponseItem(**r) for r in detailed_responses],
             recommendations=get_risk_recommendations(completed_session.risk_level)
         )
@@ -242,6 +275,10 @@ async def complete_screening(
             risk_level=completed_session.risk_level.value,
             risk_description=get_risk_description(completed_session.risk_level),
             ml_risk_score=completed_session.ml_risk_score,
+            family_asd=completed_session.family_asd,
+            jaundice=completed_session.jaundice,
+            completed_by=completed_session.completed_by,
+            age_group_used=completed_session.age_group_used,
             responses=[ScreeningResponseItem(**r) for r in detailed_responses],
             recommendations=get_risk_recommendations(completed_session.risk_level)
         )
@@ -276,7 +313,11 @@ async def get_screening_history(
                 completed_at=s.completed_at,
                 raw_score=s.raw_score,
                 risk_level=s.risk_level.value if s.risk_level else None,
-                is_complete=s.completed_at is not None
+                is_complete=s.completed_at is not None,
+                family_asd=s.family_asd,
+                jaundice=s.jaundice,
+                completed_by=s.completed_by,
+                age_group_used=s.age_group_used,
             )
             for s in sessions
         ],
@@ -326,6 +367,10 @@ async def get_screening_result(
         risk_level=session.risk_level.value,
         risk_description=get_risk_description(session.risk_level),
         ml_risk_score=session.ml_risk_score,
+        family_asd=session.family_asd,
+        jaundice=session.jaundice,
+        completed_by=session.completed_by,
+        age_group_used=session.age_group_used,
         responses=[ScreeningResponseItem(**r) for r in detailed_responses],
         recommendations=get_risk_recommendations(session.risk_level)
     )
@@ -360,6 +405,10 @@ async def get_latest_screening(
         risk_level=session.risk_level.value,
         risk_description=get_risk_description(session.risk_level),
         ml_risk_score=session.ml_risk_score,
+        family_asd=session.family_asd,
+        jaundice=session.jaundice,
+        completed_by=session.completed_by,
+        age_group_used=session.age_group_used,
         responses=[ScreeningResponseItem(**r) for r in detailed_responses],
         recommendations=get_risk_recommendations(session.risk_level)
     )

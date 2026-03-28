@@ -4,9 +4,10 @@ Admin Schemas
 Pydantic models for admin-related requests and responses.
 """
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel
 from app.models.user import UserRole
+from app.schemas.professional import ProfessionalProfileResponse
 
 
 class UserListResponse(BaseModel):
@@ -16,8 +17,10 @@ class UserListResponse(BaseModel):
     first_name: str
     last_name: str
     role: UserRole
+    date_of_birth: Optional[date] = None
     is_active: bool
-    created_at: datetime
+    is_verified: Optional[bool] = None  # from professional_profile if exists
+    professional_profile: Optional[ProfessionalProfileResponse] = None
     updated_at: datetime
     
     class Config:

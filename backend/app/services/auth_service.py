@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.user import User
+from app.models.professional import ProfessionalProfile
 from app.schemas.user import UserCreate, UserUpdate
 from app.utils.security import get_password_hash, verify_password
 from app.utils.logging import get_logger
@@ -22,11 +23,26 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         email=user_data.email,
         password_hash=password_hash,
         first_name=user_data.first_name,
-        last_name=user_data.last_name
+        last_name=user_data.last_name,
+        date_of_birth=user_data.date_of_birth
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    # If registering as professional applicant, create a pending profile
+    if user_data.is_professional_applicant and user_data.license_number:
+        profile = ProfessionalProfile(
+            user_id=db_user.id,
+            license_number=user_data.license_number,
+            specialty=user_data.specialty or "",
+            institution=user_data.institution,
+            is_verified=False
+        )
+        db.add(profile)
+        db.commit()
+        logger.info(f"Professional profile created (pending) for: {db_user.email}")
+
     logger.info(f"New user created: {db_user.email}")
     return db_user
 

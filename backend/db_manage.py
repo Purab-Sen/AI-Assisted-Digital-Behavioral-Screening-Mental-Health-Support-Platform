@@ -12,6 +12,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app.config import settings
 
 
+def ensure_tables():
+    """Import all models and create tables via SQLAlchemy metadata."""
+    import app.models  # noqa: F401 — registers all ORM models on Base.metadata
+    from app.database import create_tables
+    create_tables()
+    print("✓ All tables created (or already exist)")
+
+
 def create_database():
     """Create the MySQL database if it doesn't exist."""
     import pymysql
@@ -136,7 +144,8 @@ if __name__ == "__main__":
     if args.command == "init":
         print("Initializing database...")
         if create_database():
-            run_migrations()
+            run_migrations()  # applies any real migration files if present
+            ensure_tables()   # creates any tables not yet covered by migrations
     elif args.command == "migrate":
         run_migrations()
     elif args.command == "status":

@@ -2,16 +2,20 @@
 Screening Service
 
 Business logic for AQ-10 screening questionnaire, scoring, and risk assessment.
+Uses JSON question files to avoid DB load for each screening.
 """
-from typing import List, Optional, Tuple
-from datetime import datetime
+import json
+import os
+from typing import List, Optional, Tuple, Dict
+from datetime import datetime, date
 from sqlalchemy.orm import Session
 from app.models.screening import (
-    ScreeningSession, 
-    ScreeningResponse, 
-    Question, 
+    ScreeningSession,
+    ScreeningResponse,
+    Question,
     Option,
-    RiskLevel
+    RiskLevel,
+    AgeGroup
 )
 from app.repositories.screening_repository import (
     ScreeningSessionRepository,
@@ -22,6 +26,45 @@ from app.repositories.screening_repository import (
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
+
+# =============================================================================
+# JSON Question Loading (cached in memory)
+# =============================================================================
+
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+_QUESTION_CACHE: Dict[str, dict] = {}
+
+
+def _load_questions_json(age_group: str) -> dict:
+    """Load AQ-10 questions from JSON file, cached in memory."""
+    if age_group in _QUESTION_CACHE:
+        return _QUESTION_CACHE[age_group]
+    filepath = os.path.join(_DATA_DIR, f"aq10_{age_group}.json")
+    if not os.path.exists(filepath):
+        filepath = os.path.join(_DATA_DIR, "aq10_adult.json")
+    with open(filepath, "r") as f:
+        data = json.load(f)
+    _QUESTION_CACHE[age_group] = data
+    return data
+
+
+def get_json_questions(age_group: str) -> dict:
+    """Public accessor for JSON questions by age group."""
+    return _load_questions_json(age_group)
+
+
+def get_age_group(dob: Optional[date]) -> str:
+    """Determine age group from date of birth. Returns string: child/adolescent/adult."""
+    if not dob:
+        return "adult"
+    today = date.today()
+    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    if age <= 11:
+        return "child"
+    elif age <= 15:
+        return "adolescent"
+    else:
+        return "adult"
 
 
 # =============================================================================
@@ -115,6 +158,24 @@ class ScreeningService:
         self.question_repo = QuestionRepository(db)
         self.option_repo = OptionRepository(db)
     
+    def get_questions_for_age_group(self, age_group: AgeGroup) -> List[Question]:
+        """Get AQ-10 questions filtered to a specific age group (plus 'all' questions)."""
+        from sqlalchemy import or_
+        questions = (
+            self.db.query(Question)
+            .filter(
+                or_(
+                    Question.age_group == AgeGroup.ALL,
+                    Question.age_group == age_group
+                )
+            )
+            .order_by(Question.id)
+            .all()
+        )
+        for question in questions:
+            _ = question.options  # Force load
+        return questions
+
     def get_all_questions(self) -> List[Question]:
         """Get all AQ-10 questions with their options."""
         questions = self.question_repo.get_all_with_options()
@@ -122,35 +183,43 @@ class ScreeningService:
         for question in questions:
             _ = question.options  # Force load
         return questions
-    
-    def start_screening(self, user_id: int) -> Tuple[ScreeningSession, List[Question]]:
+
+    def start_screening(self, user_id: int, user_dob=None, pre_screening: dict = None) -> Tuple[ScreeningSession, List[Question], str]:
         """
         Start a new screening session for a user.
-        
-        Returns the session and questions to display.
+        If user has a date_of_birth, returns age-appropriate questions.
+        Returns the session, questions to display, and age_group string.
         """
+        age_group_str = get_age_group(user_dob)
+
         # Check for incomplete session
         incomplete = self.db.query(ScreeningSession).filter(
             ScreeningSession.user_id == user_id,
             ScreeningSession.completed_at.is_(None)
         ).first()
-        
+
         if incomplete:
-            # Return existing incomplete session
             logger.info(f"Resuming incomplete screening session {incomplete.id} for user {user_id}")
-            questions = self.get_all_questions()
-            return incomplete, questions
-        
+            age_group_enum = AgeGroup(age_group_str) if age_group_str in [e.value for e in AgeGroup] else AgeGroup.ADULT
+            questions = self.get_questions_for_age_group(age_group_enum)
+            return incomplete, questions, age_group_str
+
         # Create new session
-        session = ScreeningSession(user_id=user_id)
+        session = ScreeningSession(
+            user_id=user_id,
+            age_group_used=age_group_str,
+            family_asd=pre_screening.get("family_asd") if pre_screening else None,
+            jaundice=pre_screening.get("jaundice") if pre_screening else None,
+            completed_by=pre_screening.get("completed_by") if pre_screening else None,
+        )
         self.db.add(session)
         self.db.commit()
         self.db.refresh(session)
-        
-        logger.info(f"Started new screening session {session.id} for user {user_id}")
-        
-        questions = self.get_all_questions()
-        return session, questions
+
+        logger.info(f"Started new screening session {session.id} for user {user_id} (age_group={age_group_str})")
+        age_group_enum = AgeGroup(age_group_str) if age_group_str in [e.value for e in AgeGroup] else AgeGroup.ADULT
+        questions = self.get_questions_for_age_group(age_group_enum)
+        return session, questions, age_group_str
     
     def submit_answer(
         self, 
@@ -250,11 +319,16 @@ class ScreeningService:
         # Get all responses
         responses = self.response_repo.get_by_screening_id(session_id)
         
-        # Verify all questions answered
-        questions = self.get_all_questions()
-        if len(responses) < len(questions):
+        # Verify all questions answered — compare against the age-group questions for this session
+        age_group_str = session.age_group_used or "adult"
+        try:
+            age_group_enum = AgeGroup(age_group_str)
+        except ValueError:
+            age_group_enum = AgeGroup.ADULT
+        session_questions = self.get_questions_for_age_group(age_group_enum)
+        if len(responses) < len(session_questions):
             raise ValueError(
-                f"Incomplete screening: {len(responses)}/{len(questions)} questions answered"
+                f"Incomplete screening: {len(responses)}/{len(session_questions)} questions answered"
             )
         
         # Calculate raw score

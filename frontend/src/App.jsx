@@ -9,14 +9,19 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import ProfessionalDashboard from './pages/admin/ProfessionalDashboard'
 import Patients from './pages/professional/Patients'
 import PatientDetail from './pages/professional/PatientDetail'
+import ConnectProfessional from './pages/ConnectProfessional'
+import Consultations from './pages/professional/Consultations'
 import UserManagement from './pages/admin/UserManagement'
 import AdminResources from './pages/admin/AdminResources'
 import Screening from './pages/Screening'
 import ScreeningHistory from './pages/ScreeningHistory'
 import ScreeningResultDetail from './pages/ScreeningResult'
+import Journal from './pages/Journal'
+import Resources from './pages/Resources'
 import Tasks from './pages/Tasks'
 import TaskPlayer from './pages/TaskPlayer'
 import TaskHistory from './pages/TaskHistory'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -77,6 +82,24 @@ function App() {
             }
           />
           
+          {/* Journal & Resources */}
+          <Route
+            path="/journal"
+            element={
+              <ProtectedRoute>
+                <Journal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <Resources />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Task routes */}
           <Route
             path="/tasks"
@@ -151,6 +174,32 @@ function App() {
             element={
               <ProtectedRoute requiredRoles={["professional", "admin"]}>
                 <PatientDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professional/consultations"
+            element={
+              <ProtectedRoute requiredRoles={["professional", "admin"]}>
+                <Consultations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/connect-professional"
+            element={
+              <ProtectedRoute>
+                <ConnectProfessional />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

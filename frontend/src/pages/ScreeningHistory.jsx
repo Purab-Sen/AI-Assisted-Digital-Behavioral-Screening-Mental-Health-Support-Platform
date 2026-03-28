@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import screeningService from '../services/screeningService'
+import NavBar from '../components/NavBar'
 import './ScreeningHistory.css'
 
 function ScreeningHistory() {
@@ -65,6 +66,7 @@ function ScreeningHistory() {
 
   return (
     <div className="history-container">
+      <NavBar />
       <div className="history-header">
         <div>
           <h1>Screening History</h1>

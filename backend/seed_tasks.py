@@ -10,7 +10,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.database import SessionLocal
+import app.models  # noqa: F401 — registers all ORM models
+from app.database import SessionLocal, create_tables
 from app.models.task import Task
 from app.utils.logging import get_logger
 
@@ -42,6 +43,7 @@ TASKS = [
 
 
 def seed_tasks():
+    create_tables()  # ensure tables exist
     db = SessionLocal()
 
     try:

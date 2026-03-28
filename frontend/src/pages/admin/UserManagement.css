@@ -1,194 +1,46 @@
-/* =========================================
-   UserManagement.css - Clean Professional Admin
-========================================= */
+/* User Management */
+.user-mgmt-page { min-height: 100vh; background: var(--bg); }
+.page-content { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; animation: fadeInUp 0.4s ease both; }
+.page-title { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 6px; }
+.page-subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 32px; }
+.section-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 24px; margin-bottom: 20px; }
+.section-card h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; }
+.assign-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.form-field select, .form-field input { padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface); outline: none; transition: all var(--transition-fast); }
+.form-field select:focus, .form-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.field-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.filters-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 14px; align-items: end; }
+.filters-row { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-xs); }
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+.pagination-info { font-size: 13px; color: var(--text-muted); }
+.pagination-btns { display: flex; gap: 8px; }
+.table-wrap { overflow-x: auto; border-radius: var(--radius-xl); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm); }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg); border-bottom: 2px solid var(--border); }
+thead th { padding: 13px 16px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition-fast); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f8fafc; }
+tbody td { padding: 14px 16px; font-size: 14px; color: var(--text-primary); vertical-align: middle; }
+.td-name { font-weight: 600; }
+.td-email { color: var(--text-secondary); font-size: 13px; }
+.td-professional-meta { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
+.td-professional-meta .meta-row { margin-top: 4px; }
+.td-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.role-select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--text-primary); cursor: pointer; outline: none; }
+.role-select:focus { border-color: var(--primary); }
+.status-toggle { padding: 5px 12px; border-radius: var(--radius-full); font-size: 12px; font-weight: 700; border: none; cursor: pointer; }
+.status-active { background: var(--success-bg); color: #065f46; border: 1px solid var(--success-border); }
+.status-inactive { background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
+.error-note { color: var(--error); font-size: 12px; margin-top: 4px; }
+.warn-note { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
 
-@import './AdminDashboard.css';
-
-/* =========================================
-   Page Background
-========================================= */
-
-body {
-  background-color: #f4f6f9;
-  min-height: 100vh;
+@media (max-width: 900px) {
+  .assign-grid { grid-template-columns: 1fr 1fr; }
+  .filters-grid { grid-template-columns: 1fr 1fr; }
 }
-
-/* =========================================
-   Card Containers
-========================================= */
-
-.bg-white {
-  background-color: #ffffff !important;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.rounded-lg {
-  border-radius: 10px;
-}
-
-/* =========================================
-   Headings
-========================================= */
-
-h1 {
-  font-weight: 600;
-  color: #111827;
-}
-
-p {
-  color: #6b7280;
-}
-
-/* =========================================
-   Table Styling
-========================================= */
-
-.min-w-full {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-table.min-w-full thead {
-  background-color: #f9fafb;
-}
-
-table.min-w-full th {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 14px 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-table.min-w-full td {
-  padding: 16px;
-  font-size: 14px;
-  color: #374151;
-  border-bottom: 1px solid #f1f1f1;
-}
-
-table.min-w-full tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-/* =========================================
-   Avatar
-========================================= */
-
-.patient-avatar {
-  height: 40px;
-  width: 40px;
-  border-radius: 50%;
-  background-color: #e0e7ff;
-  color: #3730a3;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* =========================================
-   Inputs & Selects
-========================================= */
-
-input,
-select {
-  background-color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 6px !important;
-  font-size: 14px;
-  color: #374151 !important;
-  padding: 8px 10px;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
-}
-
-input:focus,
-select:focus {
-  border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
-  outline: none;
-}
-
-/* =========================================
-   Buttons
-========================================= */
-
-button {
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px !important;
-  transition: all 0.2s ease;
-}
-
-/* Primary Button */
-.bg-indigo-600 {
-  background-color: #4f46e5 !important;
-  border: none !important;
-}
-
-.bg-indigo-600:hover {
-  background-color: #4338ca !important;
-}
-
-/* Verify Button */
-.bg-blue-600 {
-  background-color: #2563eb !important;
-}
-
-.bg-blue-600:hover {
-  background-color: #1d4ed8 !important;
-}
-
-/* Status Buttons */
-.bg-green-100 {
-  background-color: #ecfdf5 !important;
-  color: #065f46 !important;
-}
-
-.bg-red-100 {
-  background-color: #fef2f2 !important;
-  color: #7f1d1d !important;
-}
-
-/* Delete Button */
-.text-red-600 {
-  color: #dc2626 !important;
-}
-
-.text-red-600:hover {
-  color: #991b1b !important;
-}
-
-/* =========================================
-   Pagination
-========================================= */
-
-.bg-gray-50 {
-  background-color: #f9fafb !important;
-  border-top: 1px solid #e5e7eb;
-}
-
-.text-gray-700 {
-  color: #374151 !important;
-}
-
-.text-gray-500 {
-  color: #6b7280 !important;
-}
-
-/* =========================================
-   Loading Spinner
-========================================= */
-
-.animate-spin {
-  border-color: #e5e7eb;
-  border-top-color: #4f46e5 !important;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+@media (max-width: 600px) {
+  .assign-grid, .filters-grid { grid-template-columns: 1fr; }
 }

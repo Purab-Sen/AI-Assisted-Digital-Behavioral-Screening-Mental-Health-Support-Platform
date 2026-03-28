@@ -1,0 +1,20 @@
+/* Consultations Page */
+.consultations-page { min-height: 100vh; background: var(--bg); }
+.page-content { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; animation: fadeInUp 0.4s ease both; }
+.page-title { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 6px; }
+.page-subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 32px; }
+.section-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 24px; }
+.request-list { display: flex; flex-direction: column; gap: 12px; }
+.request-card { background: var(--bg); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 18px; transition: all var(--transition); }
+.request-card:hover { box-shadow: var(--shadow-md); }
+.request-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.request-user { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.request-status { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: var(--radius-full); text-transform: capitalize; }
+.status-pending { background: var(--warning-bg); color: #92400e; border: 1px solid var(--warning-border); }
+.status-accepted { background: var(--success-bg); color: #065f46; border: 1px solid var(--success-border); }
+.status-declined { background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
+.request-msg { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.6; }
+.request-date { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+.request-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.empty-msg { text-align: center; padding: 40px; color: var(--text-muted); font-size: 15px; }
+.page-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }

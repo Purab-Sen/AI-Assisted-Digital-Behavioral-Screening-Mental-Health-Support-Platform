@@ -1,16 +1,17 @@
 /**
  * AQ-10 Screening Page
- * 
- * Main screening questionnaire interface with progress tracking and results.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import NavBar from '../components/NavBar'
 import screeningService from '../services/screeningService'
 import './Screening.css'
 
 function Screening() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
+  const { user, updateUser } = useAuth()
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [session, setSession] = useState(null)
   const [questions, setQuestions] = useState([])
@@ -20,24 +21,50 @@ function Screening() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
 
-  // Start screening on mount
-  useEffect(() => {
-    startScreening()
-  }, [])
+  // Pre-screening state
+  const [showPreScreening, setShowPreScreening] = useState(true)
+  const [preScreening, setPreScreening] = useState({
+    family_asd: '',
+    jaundice: '',
+    completed_by: ''
+  })
+  // Profile completeness state
+  const [profileGender, setProfileGender] = useState(user?.gender || '')
+  const [profileEthnicity, setProfileEthnicity] = useState(user?.ethnicity || '')
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  const profileComplete = !!(user?.gender && user?.ethnicity && user?.date_of_birth)
+  const preScreeningComplete = preScreening.family_asd && preScreening.jaundice && preScreening.completed_by
 
   const startScreening = async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await screeningService.startScreening()
+      const data = await screeningService.startScreening({
+        family_asd: preScreening.family_asd,
+        jaundice: preScreening.jaundice,
+        completed_by: preScreening.completed_by
+      })
       setSession({ id: data.session_id, started_at: data.started_at })
       setQuestions(data.questions)
       setStartTime(Date.now())
+      setShowPreScreening(false)
     } catch (err) {
       setError('Failed to start screening. Please try again.')
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      setProfileSaving(true)
+      await updateUser({ gender: profileGender, ethnicity: profileEthnicity })
+    } catch (err) {
+      setError('Failed to save profile. Please try again.')
+    } finally {
+      setProfileSaving(false)
     }
   }
 
@@ -51,31 +78,22 @@ function Screening() {
         response_time_ms: responseTime
       }
     }))
-    setStartTime(Date.now()) // Reset timer for next question
+    setStartTime(Date.now())
   }, [startTime])
 
   const goToNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1)
-    }
+    if (currentIndex < questions.length - 1) setCurrentIndex(prev => prev + 1)
   }
-
   const goToPrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1)
-    }
+    if (currentIndex > 0) setCurrentIndex(prev => prev - 1)
   }
+  const goToQuestion = (index) => setCurrentIndex(index)
 
-  const goToQuestion = (index) => {
-    setCurrentIndex(index)
-  }
-
-  const handleSubmit = async () => {
+  const submitScreening = async () => {
     if (Object.keys(answers).length < questions.length) {
       setError('Please answer all questions before submitting.')
       return
     }
-
     try {
       setSubmitting(true)
       setError(null)
@@ -90,153 +108,250 @@ function Screening() {
     }
   }
 
+  // Compute age group label
+  const getAgeGroupLabel = () => {
+    if (!user?.date_of_birth) return null
+    const dob = new Date(user.date_of_birth)
+    const today = new Date()
+    let age = today.getFullYear() - dob.getFullYear()
+    const m = today.getMonth() - dob.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+    if (age <= 11) return 'Child (4–11)'
+    if (age <= 15) return 'Adolescent (12–15)'
+    return 'Adult (16+)'
+  }
+  const ageGroupLabel = getAgeGroupLabel()
+
   const currentQuestion = questions[currentIndex]
   const isAnswered = currentQuestion && answers[currentQuestion.id]
   const allAnswered = questions.length > 0 && Object.keys(answers).length === questions.length
   const progress = questions.length > 0 ? (Object.keys(answers).length / questions.length) * 100 : 0
 
-  // Loading state
-  if (loading) {
+  // Pre-screening / profile gate
+  if (showPreScreening && !session) {
     return (
       <div className="screening-container">
-        <div className="screening-loading">
-          <div className="spinner"></div>
-          <p>Loading questionnaire...</p>
+        <NavBar />
+        <div className="screening-inner">
+          <div className="screening-header">
+            <h1>AQ-10 Screening</h1>
+            <p className="screening-subtitle">Before we begin, please complete the following details.</p>
+          </div>
+
+          {/* Profile completeness check */}
+          {!profileComplete && (
+            <div className="pre-screening-card">
+              <h3>Complete Your Profile</h3>
+              <p className="pre-screening-note">Gender and ethnicity are required before taking the screening.</p>
+              {!user?.date_of_birth && (
+                <p className="pre-screening-warning">⚠ Date of birth is required. Please update it on your <Link to="/profile">Profile page</Link>.</p>
+              )}
+              <div className="pre-form-grid">
+                {!user?.gender && (
+                  <div className="form-field">
+                    <label>Gender</label>
+                    <select value={profileGender} onChange={e => setProfileGender(e.target.value)}>
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+                {!user?.ethnicity && (
+                  <div className="form-field">
+                    <label>Ethnicity</label>
+                    <select value={profileEthnicity} onChange={e => setProfileEthnicity(e.target.value)}>
+                      <option value="">Select ethnicity</option>
+                      <option value="Asian">Asian</option>
+                      <option value="Middle Eastern">Middle Eastern</option>
+                      <option value="White European">White European</option>
+                      <option value="Hispanic">Hispanic</option>
+                      <option value="Latino">Latino</option>
+                      <option value="South Asian">South Asian</option>
+                      <option value="Mixed">Mixed</option>
+                      <option value="Native Indian">Native Indian</option>
+                      <option value="Pacifica">Pacifica</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              {(profileGender || profileEthnicity) && (
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveProfile}
+                  disabled={profileSaving || (!profileGender && !user?.gender) || (!profileEthnicity && !user?.ethnicity)}
+                >
+                  {profileSaving ? 'Saving…' : 'Save Profile'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Pre-screening questions */}
+          {profileComplete && (
+            <div className="pre-screening-card">
+              <h3>Pre-Screening Information</h3>
+              {ageGroupLabel && <span className="age-group-badge">{ageGroupLabel} Screening</span>}
+              <div className="pre-form-grid">
+                <div className="form-field">
+                  <label>Family member with ASD?</label>
+                  <div className="radio-group">
+                    <label className={`radio-option ${preScreening.family_asd === 'Yes' ? 'selected' : ''}`}>
+                      <input type="radio" name="family_asd" value="Yes" checked={preScreening.family_asd === 'Yes'} onChange={e => setPreScreening(p => ({ ...p, family_asd: e.target.value }))} />
+                      Yes
+                    </label>
+                    <label className={`radio-option ${preScreening.family_asd === 'No' ? 'selected' : ''}`}>
+                      <input type="radio" name="family_asd" value="No" checked={preScreening.family_asd === 'No'} onChange={e => setPreScreening(p => ({ ...p, family_asd: e.target.value }))} />
+                      No
+                    </label>
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label>Jaundice at birth?</label>
+                  <div className="radio-group">
+                    <label className={`radio-option ${preScreening.jaundice === 'Yes' ? 'selected' : ''}`}>
+                      <input type="radio" name="jaundice" value="Yes" checked={preScreening.jaundice === 'Yes'} onChange={e => setPreScreening(p => ({ ...p, jaundice: e.target.value }))} />
+                      Yes
+                    </label>
+                    <label className={`radio-option ${preScreening.jaundice === 'No' ? 'selected' : ''}`}>
+                      <input type="radio" name="jaundice" value="No" checked={preScreening.jaundice === 'No'} onChange={e => setPreScreening(p => ({ ...p, jaundice: e.target.value }))} />
+                      No
+                    </label>
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label>Who is completing this test?</label>
+                  <select value={preScreening.completed_by} onChange={e => setPreScreening(p => ({ ...p, completed_by: e.target.value }))}>
+                    <option value="">Select…</option>
+                    <option value="Self">Self</option>
+                    <option value="Family Member">Family Member</option>
+                    <option value="Health Care Professional">Health Care Professional</option>
+                    <option value="School and NGO">School and NGO</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+              </div>
+              {error && <div className="screening-inline-error">⚠ {error}</div>}
+              <div className="pre-screening-actions">
+                <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">Cancel</button>
+                <button onClick={startScreening} disabled={!preScreeningComplete || loading} className="btn btn-primary">
+                  {loading ? 'Starting…' : 'Begin Screening →'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
-  // Error state
+  if (loading) {
+    return (
+      <div className="screening-container">
+        <div className="screening-loading">
+          <div className="spinner"></div>
+          <p>Loading questionnaire…</p>
+        </div>
+      </div>
+    )
+  }
+
   if (error && !session) {
     return (
       <div className="screening-container">
         <div className="screening-error">
           <h2>Something went wrong</h2>
           <p>{error}</p>
-          <button onClick={startScreening} className="btn btn-primary">
-            Try Again
-          </button>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-            Back to Dashboard
-          </button>
+          <button onClick={startScreening} className="btn btn-primary">Try Again</button>
+          <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">Back to Dashboard</button>
         </div>
       </div>
     )
   }
 
-  // Results view
   if (result) {
-    return <ScreeningResult result={result} onNewScreening={() => {
-      setResult(null)
-      setAnswers({})
-      setCurrentIndex(0)
-      startScreening()
+    return <ScreeningResultInline result={result} onNewScreening={() => {
+      setResult(null); setAnswers({}); setCurrentIndex(0); setShowPreScreening(true)
     }} />
   }
 
   return (
     <div className="screening-container">
-      <div className="screening-header">
-        <h1>AQ-10 Screening</h1>
-        <p className="screening-subtitle">
-          Answer the following questions based on how you typically behave or feel.
-        </p>
-      </div>
+      <NavBar />
 
-      {/* Progress bar */}
-      <div className="progress-container">
-        <div className="progress-bar">
-          <div 
-            className="progress-fill" 
-            style={{ width: `${progress}%` }}
-          ></div>
+      <div className="screening-inner">
+        <div className="screening-header">
+          <h1>AQ-10 Screening</h1>
+          <p className="screening-subtitle">
+            Answer the following questions based on how you typically behave or feel.
+          </p>
         </div>
-        <span className="progress-text">
-          {Object.keys(answers).length} of {questions.length} answered
-        </span>
-      </div>
 
-      {/* Question navigation dots */}
-      <div className="question-nav">
-        {questions.map((q, index) => (
-          <button
-            key={q.id}
-            className={`nav-dot ${index === currentIndex ? 'active' : ''} ${answers[q.id] ? 'answered' : ''}`}
-            onClick={() => goToQuestion(index)}
-            title={`Question ${index + 1}`}
-          >
-            {index + 1}
-          </button>
-        ))}
-      </div>
-
-      {/* Current question */}
-      {currentQuestion && (
-        <div className="question-card">
-          <div className="question-number">
-            Question {currentIndex + 1} of {questions.length}
+        {/* Progress bar */}
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
           </div>
-          <h2 className="question-text">{currentQuestion.text}</h2>
-          
-          <div className="options-list">
-            {currentQuestion.options.map((option) => (
-              <button
-                key={option.id}
-                className={`option-button ${answers[currentQuestion.id]?.selected_option_id === option.id ? 'selected' : ''}`}
-                onClick={() => handleAnswer(currentQuestion.id, option.id)}
-              >
-                {option.text}
-              </button>
-            ))}
+          <span className="progress-text">{Object.keys(answers).length} of {questions.length} answered</span>
+        </div>
+
+        {/* Question navigation dots */}
+        <div className="question-nav">
+          {questions.map((q, index) => (
+            <button
+              key={q.id}
+              className={`nav-dot ${index === currentIndex ? 'active' : ''} ${answers[q.id] ? 'answered' : ''}`}
+              onClick={() => goToQuestion(index)}
+              title={`Question ${index + 1}`}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
+
+        {/* Current question */}
+        {currentQuestion && (
+          <div className="question-card">
+            <div className="question-number">Question {currentIndex + 1} of {questions.length}</div>
+            <h2 className="question-text">{currentQuestion.text}</h2>
+            <div className="options-list">
+              {currentQuestion.options.map((option) => (
+                <button
+                  key={option.id}
+                  className={`option-button ${answers[currentQuestion.id]?.selected_option_id === option.id ? 'selected' : ''}`}
+                  onClick={() => handleAnswer(currentQuestion.id, option.id)}
+                >
+                  {option.text}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Error message */}
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-
-      {/* Navigation buttons */}
-      <div className="navigation-buttons">
-        <button 
-          onClick={goToPrevious}
-          disabled={currentIndex === 0}
-          className="btn btn-secondary"
-        >
-          ← Previous
-        </button>
-
-        {currentIndex < questions.length - 1 ? (
-          <button 
-            onClick={goToNext}
-            disabled={!isAnswered}
-            className="btn btn-primary"
-          >
-            Next →
-          </button>
-        ) : (
-          <button 
-            onClick={handleSubmit}
-            disabled={!allAnswered || submitting}
-            className="btn btn-success"
-          >
-            {submitting ? 'Submitting...' : 'Submit Screening'}
-          </button>
         )}
-      </div>
 
-      {/* Back to dashboard link */}
-      <div className="screening-footer">
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="link-button"
-        >
-          Save & Exit (you can resume later)
-        </button>
+        {/* Error message */}
+        {error && <div className="screening-inline-error">⚠ {error}</div>}
+
+        {/* Navigation buttons */}
+        <div className="navigation-buttons">
+          <button onClick={goToPrevious} disabled={currentIndex === 0} className="btn btn-secondary">← Previous</button>
+          {currentIndex < questions.length - 1 ? (
+            <button onClick={goToNext} disabled={!isAnswered} className="btn btn-primary">Next →</button>
+          ) : (
+            <button onClick={submitScreening} disabled={!allAnswered || submitting} className="btn btn-success">
+              {submitting ? 'Submitting…' : 'Submit Screening ✓'}
+            </button>
+          )}
+        </div>
+
+        <div className="screening-footer">
+          <button onClick={() => navigate('/dashboard')} className="link-button">
+            Save & Exit (you can resume later)
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -244,9 +359,9 @@ function Screening() {
 
 
 /**
- * Screening Result Component
+ * Screening Result Component (inline, after completing test)
  */
-function ScreeningResult({ result, onNewScreening }) {
+function ScreeningResultInline({ result, onNewScreening }) {
   const navigate = useNavigate()
 
   const getRiskColor = (level) => {
@@ -262,6 +377,7 @@ function ScreeningResult({ result, onNewScreening }) {
 
   return (
     <div className="screening-container">
+      <NavBar />
       <div className="result-card">
         <div className="result-header">
           <h1>Screening Complete</h1>
@@ -285,6 +401,16 @@ function ScreeningResult({ result, onNewScreening }) {
         <div className="result-description">
           <p>{result.risk_description}</p>
         </div>
+
+        {/* Connect to professional suggestion */}
+        {(result.risk_level?.toLowerCase() === 'moderate' || result.risk_level?.toLowerCase() === 'high') && (
+          <div className="connect-professional-banner">
+            <p>Based on your results, we recommend consulting with a professional.</p>
+            <button onClick={() => navigate('/connect-professional')} className="btn btn-primary">
+              Connect to a Professional →
+            </button>
+          </div>
+        )}
 
         {/* Recommendations */}
         <div className="recommendations">
@@ -310,6 +436,12 @@ function ScreeningResult({ result, onNewScreening }) {
             className="btn btn-primary"
           >
             Back to Dashboard
+          </button>
+          <button 
+            onClick={() => navigate('/connect-professional')}
+            className="btn btn-secondary"
+          >
+            Connect to Professional
           </button>
           <button 
             onClick={() => navigate('/screening/history')}

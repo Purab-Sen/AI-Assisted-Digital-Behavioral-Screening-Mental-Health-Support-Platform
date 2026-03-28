@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 from app.models.user import UserRole
 
 
@@ -12,16 +12,28 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=100)
+    date_of_birth: Optional[date] = None
+    # Professional self-registration fields (optional)
+    is_professional_applicant: bool = False
+    license_number: Optional[str] = Field(None, max_length=100)
+    specialty: Optional[str] = Field(None, max_length=255)
+    institution: Optional[str] = Field(None, max_length=255)
 
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = Field(None, max_length=50)
+    ethnicity: Optional[str] = Field(None, max_length=100)
 
 
 class UserResponse(UserBase):
     id: int
     role: UserRole
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    ethnicity: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

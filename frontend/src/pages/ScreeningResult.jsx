@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import screeningService from '../services/screeningService'
+import NavBar from '../components/NavBar'
 import './ScreeningResult.css'
 
 function ScreeningResultDetail() {
@@ -74,6 +75,7 @@ function ScreeningResultDetail() {
 
   return (
     <div className="result-detail-container">
+      <NavBar />
       {/* Header */}
       <div className="result-detail-header">
         <Link to="/screening/history" className="back-link">
@@ -113,6 +115,16 @@ function ScreeningResultDetail() {
         <h2>What This Means</h2>
         <p className="description-text">{result.risk_description}</p>
       </div>
+
+      {/* Connect to professional suggestion */}
+      {(result.risk_level?.toLowerCase() === 'moderate' || result.risk_level?.toLowerCase() === 'high') && (
+        <div className="connect-professional-banner">
+          <p>Based on your results, we recommend consulting with a professional for further evaluation.</p>
+          <button onClick={() => navigate('/connect-professional')} className="btn btn-primary">
+            Connect to a Professional →
+          </button>
+        </div>
+      )}
 
       {/* Recommendations */}
       <div className="section">

@@ -1,0 +1,77 @@
+/* ================================================
+   Journal Page
+   ================================================ */
+
+.journal-page { min-height: 100vh; background: var(--bg); }
+
+.journal-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+
+/* Form */
+.journal-form-card { margin-bottom: 28px; }
+.journal-form { display: flex; flex-direction: column; gap: 20px; }
+.journal-form textarea { width: 100%; resize: vertical; min-height: 120px; }
+
+/* Sliders */
+.journal-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 600px) { .journal-sliders { grid-template-columns: 1fr; } }
+
+.slider-group { display: flex; flex-direction: column; gap: 8px; }
+.slider-group label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.slider-value { font-weight: 700; color: var(--primary); }
+.slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+input[type="range"].mood-slider,
+input[type="range"].stress-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].mood-slider::-webkit-slider-thumb,
+input[type="range"].stress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.3);
+}
+
+/* Share toggle */
+.share-toggle { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.share-toggle input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; accent-color: var(--primary); cursor: pointer; }
+.share-hint { display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); margin-top: 2px; }
+
+.form-error { background: #fee2e2; border: 1px solid #fca5a5; color: var(--error); border-radius: var(--radius-md); padding: 10px 14px; font-size: 14px; }
+.form-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Entries */
+.journal-entries { display: flex; flex-direction: column; gap: 16px; }
+
+.journal-entry-card { padding: 20px 24px !important; }
+
+.entry-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.entry-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.entry-date { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.shared-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full); background: rgba(99,102,241,0.12); color: var(--primary); }
+
+.entry-scores { display: flex; gap: 10px; align-items: center; }
+.score-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-full); background: var(--surface); border: 1px solid var(--border); }
+.mood-chip { color: var(--text-primary); }
+
+.entry-content { font-size: 15px; color: var(--text-primary); line-height: 1.65; margin: 0 0 16px; white-space: pre-wrap; }
+.entry-actions { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+
+/* Read-more clamp for long entries */
+.entry-content.clamped { max-height: 120px; overflow: hidden; position: relative; }
+.entry-content.clamped::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, var(--surface)); }
+.read-more-btn { background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; margin-top: 4px; font-family: inherit; }
+
+/* Empty */
+.empty-msg { text-align: center; padding: 48px 24px; color: var(--text-secondary); }
+.empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+.error-msg { color: var(--error); padding: 24px; text-align: center; }

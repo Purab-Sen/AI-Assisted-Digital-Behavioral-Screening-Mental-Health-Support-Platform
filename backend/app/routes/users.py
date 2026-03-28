@@ -10,7 +10,8 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.professional import (
     ProfessionalProfile,
-    ConsultationRequest
+    ConsultationRequest,
+    ProfessionalNote
 )
 from app.models.consent import ConsentLog
 from app.schemas.professional import (
@@ -20,6 +21,7 @@ from app.schemas.professional import (
 )
 from app.schemas.user import ConsentLogCreate, ConsentLogResponse
 from app.utils.dependencies import get_current_active_user
+from app.routes.notifications import create_notification
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -124,7 +126,15 @@ async def share_data_with_professional(
     db.add(consultation)
     db.commit()
     db.refresh(consultation)
-    
+
+    # Notify the professional
+    create_notification(
+        db, request_data.professional_id, "consultation_request",
+        "New Consultation Request",
+        f"{current_user.first_name} {current_user.last_name} wants to share their data with you.",
+        "/professional/consultations"
+    )
+
     return consultation
 
 
@@ -251,3 +261,40 @@ async def get_latest_consents(
         consent.consent_type: consent.consented
         for consent in latest_consents
     }
+
+
+# =============================================================================
+# User: View professional notes about themselves
+# =============================================================================
+
+@router.get("/my-notes")
+async def get_my_professional_notes(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get professional notes written about the current user.
+    Only shows notes from professionals who have an accepted consultation.
+    """
+    notes = (
+        db.query(ProfessionalNote)
+        .join(ConsultationRequest, (
+            (ConsultationRequest.user_id == ProfessionalNote.user_id) &
+            (ConsultationRequest.professional_id == ProfessionalNote.professional_id) &
+            (ConsultationRequest.status == "accepted")
+        ))
+        .filter(ProfessionalNote.user_id == current_user.id)
+        .order_by(ProfessionalNote.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for n in notes:
+        prof = db.query(User).filter(User.id == n.professional_id).first()
+        result.append({
+            "id": n.id,
+            "content": n.content,
+            "created_at": n.created_at.isoformat(),
+            "professional_name": f"{prof.first_name} {prof.last_name}" if prof else "Unknown"
+        })
+    return result

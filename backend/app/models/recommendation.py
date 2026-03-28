@@ -24,9 +24,14 @@ class Resource(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
     type = Column(SQLEnum(ResourceType), nullable=False)
     content_or_url = Column(Text, nullable=True)
     target_risk_level = Column(SQLEnum(RiskLevel), nullable=True)
+    # uploaded_by: null = admin/system, else user_id of professional
+    uploaded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # patient_id: null = global resource, else specific patient
+    patient_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
 
     recommendations = relationship("Recommendation", back_populates="resource")
 

@@ -1,116 +1,56 @@
 # ASD Screening & Support Platform
 
-> An AI-assisted behavioral screening and decision support system for Autism Spectrum Disorder research and assessment.
+AI-assisted behavioral screening and support system for Autism Spectrum Disorder.
 
----
+**Note:** This is a screening and support tool — NOT a medical diagnostic system.
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [API Documentation](#api-documentation)
-- [Database Schema](#database-schema)
-- [Development](#development)
-- [Implementation Status](#implementation-status)
-
-
-## 🎯 Overview
-
-This platform provides an integrated solution for behavioral screening and support monitoring. It combines:
-- **Screening Module**: AQ-10 based autism spectrum assessment
-- **Behavioral Tracking**: Task-based performance monitoring
-- **Mood & Journal Analysis**: AI-powered sentiment and emotion recognition
-- **Risk Analytics**: ML-driven risk assessment and trending
-- **Recommendations**: Personalized resource suggestions
-- **Professional Interface**: Mental health professional consultation tools
-
-## ✨ Features
-
-- 🔐 **Secure Authentication**: JWT-based auth with bcrypt password hashing
-- 📊 **Risk Analysis**: ML-powered risk scoring and trend analysis
-- 📝 **Journal & Mood Tracking**: Emotion detection and sentiment analysis
-- 🎮 **Behavioral Tasks**: Interactive task-based performance metrics
-- 👥 **Professional Dashboard**: Consultation and patient management
-- 📱 **Responsive Design**: Mobile-friendly web interface
-- 🔄 **Real-time Updates**: WebSocket support for live monitoring
-- 📈 **Comprehensive Reporting**: Detailed risk assessment reports
-
-## 🏗️ Architecture
+## Project Structure
 
 ```
-┌─────────────────────┐
-│   Frontend (React)  │
-└──────────┬──────────┘
-           │
-     ┌─────▼─────┐
-     │ FastAPI   │  (API Layer)
-     └─────┬─────┘
-           │
-     ┌─────▼──────────┐
-     │ Service Layer  │
-     └─────┬──────────┘
-           │
-     ┌─────▼──────────────┐
-     │ Repository Layer   │  (Data Abstraction)
-     └─────┬──────────────┘
-           │
-     ┌─────▼────────┐
-     │ MySQL Schema │
-     └──────────────┘
-```
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18+, React Router, Axios, Vite |
-| **Backend** | FastAPI, SQLAlchemy, Pydantic |
-| **Database** | MySQL 8.0+ |
-| **Authentication** | JWT, bcrypt |
-| **ORM** | SQLAlchemy |
-| **Validation** | Pydantic |
-| **Build Tool** | Vite |
-
-## 📁 Project Structure
-
-```
-AI_Assisted_Digital_Behavioral_Screening_Platform/
-│
-├── backend/                    # FastAPI application
+My Project/
+├── backend/
 │   ├── app/
-│   │   ├── main.py            # Application entry point
-│   │   ├── config.py          # Settings & configuration
-│   │   ├── database.py        # Database connection setup
-│   │   ├── models/            # SQLAlchemy ORM models
-│   │   ├── schemas/           # Pydantic request/response schemas
-│   │   ├── routes/            # API route handlers
-│   │   ├── services/          # Business logic layer
-│   │   ├── repositories/      # Data access layer
-│   │   └── utils/             # Helper utilities
-│   ├── ml_models/             # ML model artifacts
-│   ├── alembic/               # Database migrations
-│   ├── tests/                 # Test suite
-│   ├── requirements.txt       # Python dependencies
-│   └── .env.example           # Environment template
+│   │   ├── main.py           # FastAPI application entry
+│   │   ├── config.py         # Configuration settings
+│   │   ├── database.py       # Database connection
+│   │   ├── models/           # SQLAlchemy models
+│   │   ├── schemas/          # Pydantic schemas
+│   │   ├── routes/           # API routes
+│   │   ├── services/         # Business logic services
+│   │   ├── repositories/     # Database access layer
+│   │   └── utils/            # Utility functions
+│   ├── ml_models/            # Versioned ML models
+│   ├── alembic/              # Database migrations
+│   ├── tests/                # Test suite
+│   ├── requirements.txt
+│   └── .env.example
 │
-└── frontend/                   # React SPA application
+└── frontend/
     ├── src/
-    │   ├── components/        # Reusable UI components
-    │   ├── pages/             # Page-level components
-    │   ├── services/          # API service clients
-    │   ├── hooks/             # Custom React hooks
-    │   ├── context/           # React Context setup
-    │   └── index.css          # Global styles
+    │   ├── components/       # Reusable components
+    │   ├── pages/            # Page components
+    │   ├── services/         # API services
+    │   ├── hooks/            # Custom hooks
+    │   └── context/          # React context
     ├── package.json
-    └── vite.config.js         # Vite configuration
+    └── vite.config.js
 ```
 
-## 📊 Database Schema
+## Architecture
+
+```
+Frontend (React)
+      ↓
+FastAPI API Layer
+      ↓
+Service Layer
+      ↓
+Repository Layer
+      ↓
+MySQL Database
+```
+
+## Database Schema
 
 ### Core Tables
 - **Users** - User accounts (id, email, password_hash, first_name, last_name, role, is_active)
@@ -130,88 +70,77 @@ AI_Assisted_Digital_Behavioral_Screening_Platform/
 - **ConsultationRequest** - Consultation requests (id, user_id, professional_id, status, scheduled_time)
 - **ConsentLog** - User consent tracking (id, user_id, consent_type, timestamp)
 
----
-
-## 🚀 Installation
+## Setup Instructions
 
 ### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- MySQL 8.0+
 
-Before you begin, ensure you have the following installed:
-- **Python 3.10+**
-- **Node.js 18+**
-- **MySQL 8.0+**
+### Backend Setup
 
-### Installation Steps
+1. Navigate to backend directory:
+```bash
+cd backend
+```
 
-#### Backend Setup
+2. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Create `.env` file from example:
+```bash
+cp .env.example .env
+```
+
+5. Update `.env` with your MySQL database credentials
+
+6. Initialize database and create all tables:
+```bash
+# This creates the DB, runs any Alembic migrations, then creates
+# all remaining tables directly from SQLAlchemy models:
+python db_manage.py init
+```
+
+### Seeding initial data (questions, admin, tasks)
+
+After `db_manage.py init`, seed baseline data. Each script auto-creates tables if they don't exist, so you can also run them standalone:
 
 ```bash
-# 1. Navigate to backend directory
-cd backend
+# create initial admin user  (email: admin@example.com  pw: AdminPassword123)
+python seed_admin.py
 
-# 2. Create and activate virtual environment
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+# seed AQ-10 questions for all three age groups (child / adolescent / adult)
+# reads from app/data/aq10_child.json, aq10_adolescent.json, aq10_adult.json
+python seed_aq10_questions.py
 
-# 3. Install Python dependencies
-pip install -r requirements.txt
+# to wipe and re-seed questions (e.g. after editing the JSON files):
+python seed_aq10_questions.py --force
 
-# 4. Create environment file
-cp .env.example .env
-# Then edit .env with your database credentials
+# seed example behavioral tasks
+python seed_tasks.py
+```
 
-# 5. Initialize database
-python db_manage.py init
+Notes:
+- All seed scripts are idempotent — they skip if records already exist.
+- `seed_admin.py` prints the created credentials; change the password after first login.
+- Run seeds in order: admin → questions → tasks.
 
-# 6. Start the development server
+7. Run the server:
+```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**API Documentation:** Visit `http://localhost:8000/docs` after starting the server
+API documentation available at: http://localhost:8000/docs
 
-#### Frontend Setup
-
-```bash
-# 1. Navigate to frontend directory
-cd frontend
-
-# 2. Install Node dependencies
-npm install
-
-# 3. Start development server
-npm run dev
-```
-
-**Application:** Open `http://localhost:3000` in your browser
-
----
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file in the backend directory with the following variables:
-
-```env
-# Database
-DATABASE_URL=mysql+pymysql://user:password@localhost:3306/asd_platform
-
-# JWT
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# API
-API_V1_STR=/api/v1
-
-# CORS
-CORS_ORIGINS=["http://localhost:3000"]
-```
-
-### Database Migrations
+### Database Management Commands
 
 ```bash
 # Check migration status
@@ -220,7 +149,7 @@ python db_manage.py status
 # Run pending migrations
 python db_manage.py migrate
 
-# Create new migration (after model changes)
+# Generate new migration (after model changes)
 python db_manage.py generate -m "description of changes"
 
 # Rollback last migration
@@ -230,121 +159,88 @@ python db_manage.py rollback
 python db_manage.py rollback -s 3
 ```
 
----
+### Frontend Setup
 
-## 🎯 Running the Application
-
-### Step 1: Initialize Database
-
-After running migrations, you need to seed the database with initial data:
-
-```bash
-cd backend
-
-# Seed admin user (creates default admin account)
-python seed_admin.py
-
-# Seed AQ-10 screening questions and options
-python seed_aq10_questions.py
-
-# Seed behavioral tasks
-python seed_tasks.py
-```
-
-**What gets seeded:**
-- **Admin User** - Default admin account for platform management
-- **AQ-10 Questions** - 10-item autism spectrum screening questionnaire with scoring options
-- **Behavioral Tasks** - Pre-configured tasks for behavioral tracking and analysis
-
-### Step 2: Start the Application
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-python -m pip install -r requirements.txt
-python db_manage.py init      # Initialize database
-python seed_admin.py          # Create admin user
-python seed_aq10_questions.py # Load screening questions
-python seed_tasks.py          # Load behavioral tasks
-
-# Start API server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Terminal 2 - Frontend:**
+1. Navigate to frontend directory:
 ```bash
 cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run development server:
+```bash
+npm run dev
+```
+
+Frontend available at: http://localhost:3000
+
+## Recent Updates (local workspace)
+
+- **DB init fixed**: `db_manage.py init` now calls `Base.metadata.create_all()` directly, so all tables are created even when there are no Alembic migration files present.
+- **All seed scripts are standalone**: each script imports models and calls `create_tables()` before inserting so they work even if `db_manage.py init` hasn't been run yet.
+- **AQ-10 seeding revamped**: `seed_aq10_questions.py` now reads all three age-group JSON files (`aq10_child.json`, `aq10_adolescent.json`, `aq10_adult.json`), stores each question with its `label` (e.g. AQ1–AQ10), correct `age_group`, and option `score_value` from the `value` field in the JSONs. Add `--force` flag to wipe and re-seed.
+- **Question model** has a new `label` column (AQ1, AQ2, …) and `age_group` enum (child / adolescent / adult).
+- **Screening API** now returns `family_asd`, `jaundice`, `completed_by`, and `age_group_used` in both result and history responses so the frontend can show who took the test and all pre-screening data.
+- **Journal encryption**: entries stored encrypted in DB; decrypted by the API before returning to client.
+- **Journal UI**: edit form scrolls + focuses on open; long entries show Read More / Show Less toggle.
+- **NavBar** styling standardized across all pages.
+
+## How to run (quick)
+
+```bash
+# --- Backend (from backend/) ---
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env              # edit DATABASE_URL and SECRET_KEY
+python db_manage.py init          # creates DB + all tables
+python seed_admin.py              # admin@example.com / AdminPassword123
+python seed_aq10_questions.py     # 30 AQ-10 questions (3 age groups)
+python seed_tasks.py              # 4 example tasks
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# --- Frontend (from frontend/) ---
 npm install
 npm run dev
 ```
 
-### Access the Application
+URLs:
+- Frontend: http://localhost:3000  
+- API docs (Swagger): http://localhost:8000/docs
 
-- **Frontend**: `http://localhost:3000`
-- **Backend API**: `http://localhost:8000`
-- **API Documentation**: `http://localhost:8000/docs` (Interactive Swagger UI)
+## API Endpoints
 
----
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `GET /api/v1/auth/me` - Get current user
+- `PUT /api/v1/auth/me` - Update user profile
+- `POST /api/v1/auth/change-password` - Change password
 
-## 📡 API Documentation
+## Security Features
+- JWT-based authentication
+- Bcrypt password hashing
+- Protected API routes
+- Token refresh mechanism
+- CORS configuration
 
-### Authentication Endpoints
+## Tech Stack
+- **Frontend**: React, React Router, Axios, Vite
+- **Backend**: FastAPI, SQLAlchemy, Pydantic
+- **Database**: MySQL
+- **Auth**: JWT, bcrypt
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | User login |
-| POST | `/api/v1/auth/refresh` | Refresh access token |
-| GET | `/api/v1/auth/me` | Get current user info |
-| PUT | `/api/v1/auth/me` | Update user profile |
-| POST | `/api/v1/auth/change-password` | Change password |
-
-**Full API documentation available at:** `http://localhost:8000/docs` (interactive Swagger UI)
-
----
-
-## 🔒 Security Features
-
--  **JWT Authentication** - Stateless token-based authentication
--  **Bcrypt Password Hashing** - Industry-standard password hashing
--  **Protected Routes** - Role-based access control
--  **Token Refresh** - Secure token refresh mechanism
--  **CORS Configuration** - Controlled cross-origin requests
--  **Input Validation** - Pydantic schema validation
--  **SQL Injection Protection** - Parameterized queries via ORM
-
----
-
-## 📦 Development
-
-### Project Workflow
-
-1. **Create a feature branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Make your changes** following code style guidelines
-   - **Python**: PEP 8 conventions
-   - **React**: Standard ESLint configuration
-
-3. **Test your changes thoroughly** before committing
-
-4. **Submit a pull request** with a clear description
-
----
-
-## 📞 Support & Contact
-
-For issues or questions:
-1. Check the [Documentation](./README.md)
-2. Review existing [Issues](../../issues)
-3. Create a new issue with detailed information
-
----
+## Modules (Implementation Status)
+- [x] User Authentication
+- [x] ASD Screening (AQ-10) — all 3 age groups, pre-screening data stored
+- [x] Behavioral Task Tracking
+- [x] Journal + Mood Tracking (with encryption)
+- [ ] ML Analysis
+- [ ] Recommendation Engine
+- [ ] Report Generation
+- [x] Professional Sharing
