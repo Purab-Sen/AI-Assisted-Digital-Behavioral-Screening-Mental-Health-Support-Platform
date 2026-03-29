@@ -1,36 +1,40 @@
-# Ignore Node and Python environment artifacts to keep images small
- 
+# =========================
 # Node
+# =========================
 node_modules
 **/node_modules
-frontend/node_modules
- 
-# Vite / build caches
+
+# Vite cache ONLY (not dist)
 frontend/.vite
-frontend/dist
- 
-# Python virtualenvs
+
+# =========================
+# Python
+# =========================
 venv/
 .venv/
 env/
 backend/venv/
 backend/.venv/
- 
-# Bytecode / caches
+
+# =========================
+# Python cache
+# =========================
 __pycache__/
 *.py[cod]
 *.pyo
- 
-# Environment files and secrets
+
+# =========================
+# Secrets
+# =========================
 .env
 .env.*
 *.pem
 *.key
- 
+
+# =========================
 # Misc
+# =========================
 .DS_Store
 .git
 .vscode/
-backend/data_dump.sql
 *.log
- 
