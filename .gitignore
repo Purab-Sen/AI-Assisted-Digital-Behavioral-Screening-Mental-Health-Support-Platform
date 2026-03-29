@@ -15,12 +15,8 @@ backend/.env
 backend/*.log
 
 # ============================================================================
-# BACKEND - ML Models & Database
+# BACKEND - Database
 # ============================================================================
-backend/ml_models/*.pkl
-backend/ml_models/*.joblib
-backend/ml_models/*.pth
-backend/ml_models/*.h5
 backend/*.db
 backend/*.sqlite
 backend/*.sqlite3
