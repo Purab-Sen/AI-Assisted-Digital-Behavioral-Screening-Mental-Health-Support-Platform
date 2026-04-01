@@ -114,6 +114,7 @@ function TaskPlayer() {
 
   const handleTaskComplete = async (taskResults) => {
     try {
+      setPhase('submitting');
       const response = await taskService.submitSession(sessionData.session_id, taskResults);
       setResults(response);
       setPhase('results');
@@ -175,6 +176,18 @@ function TaskPlayer() {
         <div className="loading-container">
           <div className="loading-spinner" />
           <p>Preparing task...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SUBMITTING ---
+  if (phase === 'submitting') {
+    return (
+      <div className="task-player">
+        <div className="loading-container">
+          <div className="loading-spinner" />
+          <p>Submitting results...</p>
         </div>
       </div>
     );

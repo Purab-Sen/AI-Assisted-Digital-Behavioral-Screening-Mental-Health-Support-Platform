@@ -203,9 +203,17 @@ async def get_my_consultation_requests(
     
     requests = query.order_by(ConsultationRequest.created_at.desc()).all()
 
-    # Return enriched objects including patient name so frontend can display it
+    # Return enriched objects including patient name and screening summary
     out = []
     for r in requests:
+        # Get screening summary for this patient
+        completed_screenings = db.query(ScreeningSession).filter(
+            ScreeningSession.user_id == r.user_id,
+            ScreeningSession.completed_at.isnot(None)
+        ).order_by(ScreeningSession.completed_at.desc()).all()
+
+        last_screening = completed_screenings[0] if completed_screenings else None
+
         out.append({
             "id": r.id,
             "user_id": r.user_id,
@@ -215,6 +223,11 @@ async def get_my_consultation_requests(
             "status": r.status.value if hasattr(r.status, 'value') else r.status,
             "message": r.message,
             "created_at": r.created_at,
+            "screening_count": len(completed_screenings),
+            "last_screening_date": last_screening.completed_at if last_screening else None,
+            "last_risk_level": last_screening.risk_level.value if last_screening and last_screening.risk_level else None,
+            "last_ml_probability_label": last_screening.ml_probability_label if last_screening else None,
+            "last_raw_score": last_screening.raw_score if last_screening else None,
         })
     return out
 

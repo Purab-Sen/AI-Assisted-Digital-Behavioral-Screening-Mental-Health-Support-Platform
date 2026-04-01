@@ -30,6 +30,7 @@ function Login() {
     { email: '', password: '' },
     validateLogin
   )
+  const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = async (formValues) => {
     setIsLoading(true)
@@ -110,15 +111,20 @@ function Login() {
 
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={values.password}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Enter your password"
-              />
+              <div className="password-field">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={values.password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter your password"
+                />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(s => !s)} aria-label="Toggle password visibility">
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
               {touched.password && errors.password && (
                 <span className="error-message">{errors.password}</span>
               )}

@@ -121,6 +121,9 @@ export default function Profile() {
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
+            <button type="button" className="btn btn-outline" onClick={() => navigate('/change-password')} style={{ marginLeft: 12 }}>
+              Change Password
+            </button>
           </div>
         </form>
       </div>

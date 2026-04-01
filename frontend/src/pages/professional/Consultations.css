@@ -18,3 +18,15 @@
 .request-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .empty-msg { text-align: center; padding: 40px; color: var(--text-muted); font-size: 15px; }
 .page-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+
+/* Patient screening summary inside request card */
+.patient-screening-summary { background: var(--bg-secondary, #f8f9ff); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.screening-summary-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.screening-summary-label { color: var(--text-secondary); font-weight: 600; min-width: 160px; }
+.screening-summary-value { color: var(--text-primary); font-weight: 700; }
+.screening-none-msg { font-size: 13px; color: var(--text-muted); font-style: italic; }
+.screening-risk-badge { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); text-transform: capitalize; }
+.risk-low { background: var(--success-bg); color: #065f46; border: 1px solid var(--success-border); }
+.risk-moderate { background: var(--warning-bg); color: #92400e; border: 1px solid var(--warning-border); }
+.risk-high { background: var(--error-bg); color: #991b1b; border: 1px solid var(--error-border); }
+.risk-very-high { background: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }

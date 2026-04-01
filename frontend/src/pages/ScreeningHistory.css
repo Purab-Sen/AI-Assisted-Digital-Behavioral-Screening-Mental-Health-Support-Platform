@@ -1,5 +1,6 @@
 /* Screening History */
-.history-container { min-height: 100vh; background: var(--bg); padding: 40px 24px 80px; max-width: 840px; margin: 0 auto; animation: fadeInUp 0.4s ease both; }
+.history-container { min-height: 100vh; background: var(--bg); animation: fadeInUp 0.4s ease both; }
+.history-content { max-width: 840px; margin: 0 auto; padding: 40px 24px 80px; }
 .history-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 36px; flex-wrap: wrap; }
 .history-header div h1 { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 6px; }
 .history-header div p { color: var(--text-secondary); font-size: 15px; }

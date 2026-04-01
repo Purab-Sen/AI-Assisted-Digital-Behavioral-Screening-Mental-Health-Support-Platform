@@ -89,6 +89,81 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent sporadic horizontal overflow on small devices and hide decorative offsets */
+@media (max-width: 860px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Hide large decorative absolute elements that can cause overflow */
+  .admin-banner::before,
+  .professional-banner::before,
+  .dashboard-card::before,
+  .auth-brand::before,
+  .auth-brand::after,
+  .ja-point.direction-right,
+  .ja-head-indicator,
+  .ja-gaze.direction-right,
+  .mobile-menu,
+  .notif-panel {
+    right: auto !important;
+  }
+
+  .admin-banner::before,
+  .professional-banner::before,
+  .auth-brand::before,
+  .auth-brand::after,
+  .ja-point.direction-right,
+  .ja-head-indicator,
+  .ja-gaze.direction-right {
+    display: none !important;
+  }
+
+  /* Ensure cards and containers don't exceed viewport width */
+  .section-card,
+  .auth-card,
+  .dashboard-card,
+  .task-card,
+  .mobile-menu {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Allow form controls and grid children to shrink instead of forcing overflow */
+  .form-field,
+  .assign-grid > *,
+  .filters-grid > *,
+  input,
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Break long words/emails to avoid pushing layout horizontally */
+  .page-content,
+  .section-card,
+  .assign-grid,
+  .filters-grid,
+  .table-wrap,
+  .td-email,
+  .td-name {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  /* Override specific components that set larger min-widths to avoid overflow on very small screens */
+  .analysis-item,
+  .screening-entry .screening-date,
+  .ai-prob-row,
+  .note-card-prominent,
+  .fer-face-display,
+  .fer-option,
+  .task-history .session-info,
+  .page-content > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
 /* --- Animations --- */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(24px); }

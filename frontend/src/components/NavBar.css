@@ -85,6 +85,8 @@
 .mobile-link { padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-primary); font-weight:700; background: transparent; }
 .mobile-link.active { background: rgba(99,102,241,0.06); }
 .mobile-menu-actions { margin-top: 10px; display:flex; flex-direction:column; gap:8px; }
+.mobile-signout-btn { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--error-border); background: var(--error-bg); color: #991b1b; font-size: 14px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.15s; font-family: inherit; }
+.mobile-signout-btn:hover { background: #fecaca; }
 .notif-wrapper-mobile { position: relative; }
 
 @media (max-width: 860px) {

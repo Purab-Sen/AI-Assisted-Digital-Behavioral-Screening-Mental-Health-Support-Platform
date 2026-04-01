@@ -108,6 +108,7 @@ function TaskHistory() {
   return (
     <div className="task-history-page">
       <NavBar />
+      <div className="task-history-content">
       <div className="history-header">
         <h1>Task History</h1>
         <p>Your behavioral task performance over time</p>
@@ -284,6 +285,7 @@ function TaskHistory() {
         >
           Back to Dashboard
         </button>
+      </div>
       </div>
     </div>
   );

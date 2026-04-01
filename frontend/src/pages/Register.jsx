@@ -56,6 +56,8 @@ function Register() {
     },
     validateRegister
   )
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const toggleProfessional = () => {
     const next = !isProfessional
@@ -160,13 +162,19 @@ function Register() {
 
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input type="password" id="password" name="password" value={values.password} onChange={handleChange} onBlur={handleBlur} placeholder="At least 8 characters" />
+              <div className="password-field">
+                <input type={showPassword ? 'text' : 'password'} id="password" name="password" value={values.password} onChange={handleChange} onBlur={handleBlur} placeholder="At least 8 characters" />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(s => !s)} aria-label="Toggle password visibility">{showPassword ? '🙈' : '👁️'}</button>
+              </div>
               {touched.password && errors.password && <span className="error-message">{errors.password}</span>}
             </div>
 
             <div className="form-group">
               <label htmlFor="confirm_password">Confirm Password</label>
-              <input type="password" id="confirm_password" name="confirm_password" value={values.confirm_password} onChange={handleChange} onBlur={handleBlur} placeholder="Confirm your password" />
+              <div className="password-field">
+                <input type={showConfirm ? 'text' : 'password'} id="confirm_password" name="confirm_password" value={values.confirm_password} onChange={handleChange} onBlur={handleBlur} placeholder="Confirm your password" />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowConfirm(s => !s)} aria-label="Toggle password visibility">{showConfirm ? '🙈' : '👁️'}</button>
+              </div>
               {touched.confirm_password && errors.confirm_password && <span className="error-message">{errors.confirm_password}</span>}
             </div>
 

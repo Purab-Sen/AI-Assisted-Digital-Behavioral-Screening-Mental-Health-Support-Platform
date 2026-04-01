@@ -213,6 +213,7 @@ export default function NavBar() {
               {isProfessional && !isAdmin && !location.pathname.startsWith('/professional') && (
                 <Link to="/professional" className="nav-role-btn mobile" onClick={() => setShowMobileMenu(false)}>👨‍⚕️ Portal</Link>
               )}
+              <button className="mobile-signout-btn" onClick={() => { setShowMobileMenu(false); handleLogout(); }}>Sign Out</button>
             </div>
           </div>
         )}

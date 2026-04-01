@@ -23,6 +23,7 @@ import TaskPlayer from './pages/TaskPlayer'
 import TaskHistory from './pages/TaskHistory'
 import Profile from './pages/Profile'
 import Analysis from './pages/Analysis'
+import ChangePassword from './pages/ChangePassword'
 
 function App() {
   return (
@@ -209,6 +210,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePassword />
               </ProtectedRoute>
             }
           />

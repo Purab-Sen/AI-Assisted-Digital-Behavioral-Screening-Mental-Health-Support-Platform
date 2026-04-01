@@ -64,6 +64,11 @@ class ConsultationRequestResponse(BaseModel):
     status: str
     message: Optional[str] = None
     created_at: datetime
+    screening_count: Optional[int] = None
+    last_screening_date: Optional[datetime] = None
+    last_risk_level: Optional[str] = None
+    last_ml_probability_label: Optional[str] = None
+    last_raw_score: Optional[int] = None
     
     class Config:
         from_attributes = True

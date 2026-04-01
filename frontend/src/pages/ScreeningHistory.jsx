@@ -77,6 +77,7 @@ function ScreeningHistory() {
   return (
     <div className="history-container">
       <NavBar />
+      <div className="history-content">
       <div className="history-header">
         <div>
           <h1>Screening History</h1>
@@ -206,6 +207,7 @@ function ScreeningHistory() {
         <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
           Back to Dashboard
         </button>
+      </div>
       </div>
     </div>
   )

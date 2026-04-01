@@ -215,6 +215,12 @@
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
+/* Password field with visibility toggle */
+.password-field { position: relative; }
+.password-field input { padding-right: 44px; }
+.password-toggle-btn { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); background: none; border: none; font-size: 16px; cursor: pointer; padding: 6px; border-radius: 6px; }
+.password-toggle-btn:hover { background: rgba(15,23,42,0.04); }
+
 .btn-auth {
   width: 100%;
   padding: 14px;
