@@ -85,3 +85,136 @@
 
 /* Disclaimer */
 .analysis-disclaimer { background: var(--warning-bg, #fffbeb); border: 1px solid var(--warning-border, #fde68a); border-radius: var(--radius-md); padding: 16px 20px; font-size: 13px; color: #92400e; line-height: 1.6; }
+
+/* ================================================
+   Task Analytics Section — Modern Charts & Gauges
+   ================================================ */
+.task-analytics-section { margin-bottom: 28px; }
+.task-analytics-card { max-width: 100% !important; }
+
+/* Insight banner within tasks */
+.task-insight-banner {
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.07), rgba(59,130,246,0.05));
+  border: 1px solid rgba(16,185,129,0.18); border-radius: 14px;
+  padding: 16px 20px;
+}
+.task-insight-banner p { font-size: 14px; color: var(--text-primary); line-height: 1.6; margin: 0; font-weight: 500; }
+
+/* ── Pillar gauge overview row ── */
+.pillar-gauges-row {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  padding: 8px 0;
+}
+.pillar-gauge-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px 20px 14px; min-width: 120px; flex: 1; max-width: 180px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.pillar-gauge-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.donut-gauge { flex-shrink: 0; }
+.pillar-gauge-label {
+  display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700;
+  color: var(--text-primary); text-align: center;
+}
+.pillar-gauge-icon { font-size: 14px; }
+.pillar-gauge-name { line-height: 1.2; }
+.pillar-gauge-pct { font-size: 13px; font-weight: 800; }
+.pillar-gauge-pct.positive { color: #22c55e; }
+.pillar-gauge-pct.negative { color: #ef4444; }
+
+/* ── Pillar detail block ── */
+.pillar-detail-block {
+  padding: 20px 0 8px; border-top: 1px solid var(--border);
+}
+.pillar-detail-block:first-of-type { border-top: none; }
+.pillar-detail-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+.pillar-detail-title { display: flex; align-items: center; gap: 10px; }
+.pillar-detail-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.pillar-detail-header h3 { font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0; }
+.pillar-badge-pct {
+  font-size: 13px; font-weight: 800; padding: 4px 12px;
+  border-radius: 20px;
+}
+.pillar-badge-pct.up { background: #dcfce7; color: #15803d; }
+.pillar-badge-pct.down { background: #fee2e2; color: #b91c1c; }
+
+/* ── Task cards grid ── */
+.task-cards-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ── Individual task analytics card ── */
+.task-analytics-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px; display: flex; flex-direction: column;
+  gap: 14px; transition: box-shadow 0.2s, transform 0.2s;
+}
+.task-analytics-item:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); transform: translateY(-1px); }
+
+.task-item-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.task-item-header h4 { font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0; }
+.task-trend-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 20px; white-space: nowrap; text-transform: capitalize;
+}
+.task-trend-badge.trend-positive { background: #dcfce7; color: #15803d; }
+.task-trend-badge.trend-negative { background: #fee2e2; color: #b91c1c; }
+.task-trend-badge.trend-neutral { background: #f1f5f9; color: #64748b; }
+
+/* Body: gauge + stats side by side */
+.task-item-body { display: flex; gap: 16px; align-items: flex-start; }
+.task-item-gauge { flex-shrink: 0; }
+.task-item-stats { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+.task-stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; padding: 3px 0;
+}
+.task-stat-key {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.02em;
+}
+.task-stat-val { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; }
+.primary-metric-name { color: var(--primary); text-transform: capitalize; }
+.text-green { color: #22c55e !important; }
+.text-red { color: #ef4444 !important; }
+.text-warn { color: #f59e0b !important; }
+
+/* Chart wrapper */
+.task-item-chart {
+  border-top: 1px solid var(--border); padding-top: 10px;
+}
+.task-item-chart h5 {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px 0;
+}
+.task-chart-wrapper {
+  overflow-x: auto; border-radius: 10px; background: #fafbfd;
+  border: 1px solid #f1f5f9; padding: 4px;
+}
+.task-progression-svg { display: block; }
+
+.task-item-footer {
+  font-size: 11px; color: var(--text-muted); text-align: right;
+  font-weight: 500; padding-top: 4px; border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .task-cards-grid { grid-template-columns: 1fr; }
+  .task-item-body { flex-direction: column; align-items: center; }
+  .task-item-stats { width: 100%; }
+  .pillar-gauges-row { gap: 10px; }
+  .pillar-gauge-card { min-width: 100px; padding: 14px 12px 10px; }
+}

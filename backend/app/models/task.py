@@ -11,6 +11,8 @@ class Task(Base):
     name = Column(String(255), nullable=False)
     type = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
+    pillar = Column(String(100), nullable=True)
+    category = Column(String(100), nullable=True)
 
     task_sessions = relationship("TaskSession", back_populates="task", cascade="all, delete-orphan")
 
@@ -21,6 +23,7 @@ class TaskSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    difficulty_level = Column(Integer, nullable=False, default=1, server_default='1')
     started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 

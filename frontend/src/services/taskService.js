@@ -37,8 +37,11 @@ const taskService = {
    * Start a new task session
    * @param {number} taskId 
    */
-  startSession: async (taskId) => {
-    const response = await api.post('/tasks/sessions/start', { task_id: taskId });
+  startSession: async (taskId, difficultyLevel = 1) => {
+    const response = await api.post('/tasks/sessions/start', { 
+      task_id: taskId,
+      difficulty_level: difficultyLevel
+    });
     return response.data;
   },
 

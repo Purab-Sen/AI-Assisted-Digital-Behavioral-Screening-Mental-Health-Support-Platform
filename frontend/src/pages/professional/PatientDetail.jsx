@@ -34,7 +34,11 @@ export default function PatientDetail() {
   const [screeningDetailLoading, setScreeningDetailLoading] = useState(false)
   const [showScreeningModal, setShowScreeningModal] = useState(false)
 
-  useEffect(() => { fetchDetail(); fetchPatientResources() }, [id])
+  // Task analytics state
+  const [taskAnalytics, setTaskAnalytics] = useState(null)
+  const [taskAnalyticsLoading, setTaskAnalyticsLoading] = useState(false)
+
+  useEffect(() => { fetchDetail(); fetchPatientResources(); fetchTaskAnalytics() }, [id])
 
   const fetchDetail = async () => {
     try {
@@ -55,6 +59,18 @@ export default function PatientDetail() {
       setPatientResources(res.data || [])
     } catch (err) {
       console.error('Failed to load patient resources', err)
+    }
+  }
+
+  const fetchTaskAnalytics = async () => {
+    try {
+      setTaskAnalyticsLoading(true)
+      const res = await api.get(`/professional/patients/${id}/task-analytics`)
+      setTaskAnalytics(res.data)
+    } catch (err) {
+      console.error('Failed to load task analytics', err)
+    } finally {
+      setTaskAnalyticsLoading(false)
     }
   }
 
@@ -196,6 +212,154 @@ export default function PatientDetail() {
             </div>
           ) : (
             <p style={{ color: 'var(--text-muted)' }}>No analysis available yet.</p>
+          )}
+        </div>
+
+        {/* ── Task Performance Analytics ── */}
+        <div className="section-card">
+          <h2>Cognitive Task Performance</h2>
+          {taskAnalyticsLoading && (
+            <div style={{ padding: 24, textAlign: 'center' }}>
+              <div className="spinner" style={{ margin: '0 auto' }}></div>
+              <p style={{ marginTop: 10, color: 'var(--text-muted)' }}>Loading task analytics…</p>
+            </div>
+          )}
+          {!taskAnalyticsLoading && (!taskAnalytics || taskAnalytics.total_sessions === 0) && (
+            <p style={{ color: 'var(--text-muted)' }}>No completed cognitive tasks yet.</p>
+          )}
+          {!taskAnalyticsLoading && taskAnalytics && taskAnalytics.total_sessions > 0 && (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                <strong>{taskAnalytics.total_sessions}</strong> sessions completed across{' '}
+                {Object.keys(taskAnalytics.pillar_analytics).length} pillars
+              </div>
+
+              {Object.entries(taskAnalytics.pillar_analytics).map(([pk, pv]) => {
+                const pillarIcons = { executive_function: '🧠', social_cognition: '🤝', joint_attention: '👁️', sensory_processing: '🎧' }
+                const pillarColors = { executive_function: '#6366f1', social_cognition: '#f59e0b', joint_attention: '#10b981', sensory_processing: '#ec4899' }
+                const pColor = pillarColors[pk] || '#6366f1'
+                return (
+                  <div key={pk} style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 18 }}>{pillarIcons[pk] || '📊'}</span> {pv.label}
+                      </h3>
+                      <span style={{
+                        fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20,
+                        background: pv.avg_improvement_pct >= 0 ? '#dcfce7' : '#fee2e2',
+                        color: pv.avg_improvement_pct >= 0 ? '#15803d' : '#b91c1c',
+                      }}>
+                        {pv.avg_improvement_pct > 0 ? '+' : ''}{pv.avg_improvement_pct}%
+                      </span>
+                    </div>
+
+                    {pv.tasks.map(task => {
+                      const trendUp = task.trend.includes('improvement')
+                      const trendDown = task.trend.includes('decline')
+                      // Build SVG chart
+                      const chartData = task.weekly_progression || []
+                      const hasChart = chartData.length > 0
+                      const vals = chartData.map(d => d.avg)
+                      const maxV = Math.max(...vals, 1)
+                      const minV = Math.min(...vals, 0)
+                      const rangeV = maxV - minV || 1
+                      const cW = Math.max(chartData.length * 60, 200)
+                      const cH = 80
+                      const pad = { l: 30, r: 15, t: 14, b: 18 }
+                      const ptsArr = chartData.map((d, i) => ({
+                        x: pad.l + (chartData.length === 1 ? (cW - pad.l - pad.r) / 2 : (i / (chartData.length - 1)) * (cW - pad.l - pad.r)),
+                        y: pad.t + (cH - pad.t - pad.b) - ((d.avg - minV) / rangeV) * (cH - pad.t - pad.b),
+                      }))
+
+                      return (
+                        <div key={task.category} style={{
+                          background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12,
+                          padding: 16, marginBottom: 10,
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <strong style={{ fontSize: 14 }}>{task.task_name}</strong>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                              background: trendUp ? '#dcfce7' : trendDown ? '#fee2e2' : '#f1f5f9',
+                              color: trendUp ? '#15803d' : trendDown ? '#b91c1c' : '#64748b',
+                            }}>
+                              {trendUp ? '↗' : trendDown ? '↘' : '→'} {task.trend.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, fontSize: 12, marginBottom: hasChart ? 10 : 0 }}>
+                            <div>
+                              <div style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>Metric</div>
+                              <div style={{ color: pColor, fontWeight: 700, textTransform: 'capitalize' }}>{task.primary_metric.replace(/_/g, ' ')}</div>
+                            </div>
+                            <div>
+                              <div style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>First → Latest</div>
+                              <div style={{ fontWeight: 600 }}>{task.first_value} → <strong>{task.latest_value}</strong></div>
+                            </div>
+                            <div>
+                              <div style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>Change</div>
+                              <div style={{ fontWeight: 800, color: task.improvement_pct > 0 ? '#22c55e' : task.improvement_pct < 0 ? '#ef4444' : 'inherit' }}>
+                                {task.improvement_pct > 0 ? '+' : ''}{task.improvement_pct}%
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>Sessions</div>
+                              <div style={{ fontWeight: 600 }}>{task.total_sessions} (Lv.{task.max_difficulty_reached})</div>
+                            </div>
+                          </div>
+
+                          {task.rtcv != null && (
+                            <div style={{ fontSize: 12, color: task.rtcv > 30 ? '#f59e0b' : 'var(--text-muted)', marginBottom: 8 }}>
+                              RTCV: <strong>{task.rtcv}%</strong> {task.rtcv > 30 && '⚠️ High variability — consider shorter sessions'}
+                            </div>
+                          )}
+
+                          {/* SVG Line Chart */}
+                          {hasChart && (
+                            <div style={{ overflow: 'auto', background: '#fafbfd', borderRadius: 8, border: '1px solid #f1f5f9', padding: 2 }}>
+                              <svg viewBox={`0 0 ${cW} ${cH}`} width="100%" height={cH}>
+                                <defs>
+                                  <linearGradient id={`pg-${pk}-${task.category}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={pColor} stopOpacity="0.2" />
+                                    <stop offset="100%" stopColor={pColor} stopOpacity="0.02" />
+                                  </linearGradient>
+                                </defs>
+                                {/* Grid */}
+                                <line x1={pad.l} y1={pad.t} x2={cW - pad.r} y2={pad.t} stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="3,3" />
+                                <line x1={pad.l} y1={(pad.t + cH - pad.b) / 2} x2={cW - pad.r} y2={(pad.t + cH - pad.b) / 2} stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="3,3" />
+                                <line x1={pad.l} y1={cH - pad.b} x2={cW - pad.r} y2={cH - pad.b} stroke="#e2e8f0" strokeWidth="1" />
+                                {/* Area */}
+                                {ptsArr.length > 1 && (
+                                  <path
+                                    d={`${ptsArr.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')} L${ptsArr[ptsArr.length-1].x},${cH - pad.b} L${ptsArr[0].x},${cH - pad.b} Z`}
+                                    fill={`url(#pg-${pk}-${task.category})`}
+                                  />
+                                )}
+                                {/* Line */}
+                                {ptsArr.length > 1 && (
+                                  <path
+                                    d={ptsArr.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')}
+                                    fill="none" stroke={pColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                  />
+                                )}
+                                {/* Points + Labels */}
+                                {ptsArr.map((p, i) => (
+                                  <g key={i}>
+                                    <circle cx={p.x} cy={p.y} r="4" fill="white" stroke={pColor} strokeWidth="2" />
+                                    <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1e293b">{chartData[i].avg}</text>
+                                    <text x={p.x} y={cH - 4} textAnchor="middle" fontSize="8" fontWeight="600" fill="#94a3b8">{chartData[i].week}</text>
+                                  </g>
+                                ))}
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
 

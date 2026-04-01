@@ -16,11 +16,14 @@ class TaskResponse(BaseModel):
     """Task definition response."""
     id: int
     name: str
-    type: Optional[str]
-    description: Optional[str]
+    type: Optional[str] = None
+    pillar: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
     instructions: Optional[str] = None
-    estimated_duration: Optional[int] = None  # in seconds
-    
+    estimated_duration: Optional[int] = None
+    difficulty_levels: Optional[Dict[str, Any]] = None
+
     class Config:
         from_attributes = True
 
@@ -35,12 +38,15 @@ class TaskDetailResponse(BaseModel):
     """Detailed task information with configuration."""
     id: int
     name: str
-    type: Optional[str]
-    description: Optional[str]
+    type: Optional[str] = None
+    pillar: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
     instructions: str
-    estimated_duration: int  # seconds
-    config: Dict[str, Any]  # Task-specific configuration
-    
+    estimated_duration: int
+    difficulty_levels: Dict[str, Any]
+    config: Dict[str, Any]
+
     class Config:
         from_attributes = True
 
@@ -52,6 +58,7 @@ class TaskDetailResponse(BaseModel):
 class TaskSessionStart(BaseModel):
     """Request to start a task session."""
     task_id: int
+    difficulty_level: int = Field(default=1, ge=1, le=3)
 
 
 class TaskSessionStartResponse(BaseModel):
@@ -59,7 +66,10 @@ class TaskSessionStartResponse(BaseModel):
     session_id: int
     task_id: int
     task_name: str
-    task_type: Optional[str]
+    task_type: Optional[str] = None
+    pillar: Optional[str] = None
+    category: Optional[str] = None
+    difficulty_level: int
     instructions: str
     config: Dict[str, Any]
     started_at: datetime
@@ -74,14 +84,14 @@ class TaskResultSubmit(BaseModel):
 class TaskSessionSubmit(BaseModel):
     """Submit all results for a task session."""
     results: List[TaskResultSubmit]
-    metadata: Optional[Dict[str, Any]] = None  # Additional session data
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class TaskResultResponse(BaseModel):
     """Individual task result."""
     metric_name: str
     metric_value: float
-    
+
     class Config:
         from_attributes = True
 
@@ -91,7 +101,10 @@ class TaskSessionResponse(BaseModel):
     session_id: int
     task_id: int
     task_name: str
-    task_type: Optional[str]
+    task_type: Optional[str] = None
+    pillar: Optional[str] = None
+    category: Optional[str] = None
+    difficulty_level: int = 1
     started_at: datetime
     completed_at: datetime
     duration_seconds: int
@@ -104,37 +117,40 @@ class TaskSessionSummary(BaseModel):
     id: int
     task_id: int
     task_name: str
-    task_type: Optional[str]
+    task_type: Optional[str] = None
+    pillar: Optional[str] = None
+    category: Optional[str] = None
+    difficulty_level: int = 1
     started_at: datetime
-    completed_at: Optional[datetime]
+    completed_at: Optional[datetime] = None
     is_complete: bool
     primary_score: Optional[float] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class TaskHistoryResponse(BaseModel):
-    """User's task history."""
+    """User task history."""
     sessions: List[TaskSessionSummary]
     total: int
     completed_count: int
 
 
 # =============================================================================
-# Task Progress & Stats
+# Task Progress and Stats
 # =============================================================================
 
 class TaskProgressResponse(BaseModel):
-    """User's progress for a specific task."""
+    """User progress for a specific task."""
     task_id: int
     task_name: str
     total_attempts: int
     completed_attempts: int
-    best_score: Optional[float]
-    average_score: Optional[float]
-    last_attempt: Optional[datetime]
-    improvement_trend: Optional[str]  # "improving", "stable", "declining"
+    best_score: Optional[float] = None
+    average_score: Optional[float] = None
+    last_attempt: Optional[datetime] = None
+    improvement_trend: Optional[str] = None
 
 
 class UserTaskStatsResponse(BaseModel):
@@ -142,5 +158,5 @@ class UserTaskStatsResponse(BaseModel):
     total_tasks_attempted: int
     total_sessions_completed: int
     total_time_spent_seconds: int
-    favorite_task: Optional[str]
+    favorite_task: Optional[str] = None
     task_progress: List[TaskProgressResponse]

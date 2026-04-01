@@ -5,6 +5,8 @@ Endpoints for healthcare professionals to view shared patient data.
 Requires PROFESSIONAL or ADMIN role.
 """
 from typing import List, Optional
+from collections import defaultdict
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -18,7 +20,7 @@ from app.models.professional import (
 from app.models.screening import ScreeningSession
 from app.models.analysis import UserAnalysisSnapshot
 from app.models.journal import JournalEntry
-from app.models.task import TaskSession
+from app.models.task import Task, TaskSession, TaskResult
 from app.schemas.professional import (
     ProfessionalProfileCreate,
     ProfessionalProfileResponse,
@@ -534,4 +536,154 @@ async def get_patient_screening_detail(
         "completed_by": session.completed_by,
         "age_group_used": session.age_group_used,
         "responses": detailed_responses,
+    }
+
+
+# =============================================================================
+# Patient Task Analytics (shared with connected professional)
+# =============================================================================
+
+@router.get("/patients/{patient_id}/task-analytics")
+async def get_patient_task_analytics(
+    patient_id: int,
+    professional: User = Depends(get_professional_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get clinical task performance analytics for a shared patient.
+    Includes pillar-level progression, RTCV, and weekly trends.
+    Professional only. Requires accepted consultation request.
+    """
+    consultation = db.query(ConsultationRequest).filter(
+        ConsultationRequest.user_id == patient_id,
+        ConsultationRequest.professional_id == professional.id,
+        ConsultationRequest.status == "accepted"
+    ).first()
+
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this patient's data"
+        )
+
+    task_sessions = (
+        db.query(TaskSession)
+        .join(Task)
+        .filter(
+            TaskSession.user_id == patient_id,
+            TaskSession.completed_at.isnot(None),
+        )
+        .order_by(TaskSession.completed_at.asc())
+        .all()
+    )
+
+    pillar_map = {
+        "executive_function": "Executive Function",
+        "social_cognition": "Social Cognition",
+        "joint_attention": "Joint Attention",
+        "sensory_processing": "Sensory Processing",
+    }
+
+    primary_metrics = {
+        "nback": "accuracy", "go_nogo": "false_alarm_rate",
+        "dccs": "switch_cost_ms", "tower": "problems_solved_first_choice",
+        "fer": "accuracy", "false_belief": "logical_consistency",
+        "social_stories": "comprehension_score", "conversation": "cue_detection_latency",
+        "rja": "accuracy", "ija": "detection_accuracy",
+        "visual_temporal": "accuracy", "auditory_processing": "accuracy",
+    }
+
+    pillar_sessions = defaultdict(lambda: defaultdict(list))
+    for ts in task_sessions:
+        pillar = ts.task.pillar or "unknown"
+        category = ts.task.category or "unknown"
+        results = {r.metric_name: r.metric_value for r in ts.results}
+        pillar_sessions[pillar][category].append({
+            "session_id": ts.id,
+            "task_name": ts.task.name,
+            "difficulty_level": ts.difficulty_level,
+            "completed_at": ts.completed_at.isoformat() if ts.completed_at else None,
+            "metrics": results,
+        })
+
+    pillar_analytics = {}
+    for pillar_key, pillar_label in pillar_map.items():
+        tasks_in_pillar = pillar_sessions.get(pillar_key, {})
+        if not tasks_in_pillar:
+            continue
+
+        task_summaries = []
+        for category, sessions in tasks_in_pillar.items():
+            primary_metric = primary_metrics.get(category, "accuracy")
+            metric_values = [s["metrics"].get(primary_metric) for s in sessions if s["metrics"].get(primary_metric) is not None]
+
+            if not metric_values:
+                continue
+
+            latest_val = metric_values[-1]
+            first_val = metric_values[0]
+            invert = category in ("go_nogo", "dccs", "conversation")
+
+            if len(metric_values) >= 2:
+                improvement = (first_val - latest_val) if invert else (latest_val - first_val)
+                improvement_pct = (improvement / max(abs(first_val), 1)) * 100
+            else:
+                improvement_pct = 0.0
+
+            # RTCV
+            rtcv = None
+            rt_values = [s["metrics"].get("avg_response_time") or s["metrics"].get("avg_response_latency") or s["metrics"].get("avg_detection_time") for s in sessions]
+            rt_values = [v for v in rt_values if v is not None]
+            if len(rt_values) >= 3:
+                import statistics
+                mean_rt = statistics.mean(rt_values)
+                sd_rt = statistics.stdev(rt_values)
+                rtcv = round((sd_rt / mean_rt) * 100, 1) if mean_rt > 0 else None
+
+            if improvement_pct > 15: trend = "significant_improvement"
+            elif improvement_pct > 5: trend = "moderate_improvement"
+            elif improvement_pct > -5: trend = "stable"
+            elif improvement_pct > -15: trend = "moderate_decline"
+            else: trend = "significant_decline"
+
+            weekly_data = defaultdict(list)
+            for s in sessions:
+                if s["completed_at"]:
+                    week_label = datetime.fromisoformat(s["completed_at"]).strftime("W%U")
+                    val = s["metrics"].get(primary_metric)
+                    if val is not None:
+                        weekly_data[week_label].append(val)
+
+            task_summaries.append({
+                "category": category,
+                "task_name": sessions[-1]["task_name"],
+                "total_sessions": len(sessions),
+                "primary_metric": primary_metric,
+                "latest_value": round(latest_val, 2),
+                "first_value": round(first_val, 2),
+                "improvement_pct": round(improvement_pct, 1),
+                "trend": trend,
+                "rtcv": rtcv,
+                "max_difficulty_reached": max(s["difficulty_level"] for s in sessions),
+                "weekly_progression": [
+                    {"week": w, "avg": round(sum(v) / len(v), 2), "count": len(v)}
+                    for w, v in sorted(weekly_data.items())
+                ],
+            })
+
+        if task_summaries:
+            avg_imp = sum(t["improvement_pct"] for t in task_summaries) / len(task_summaries)
+            pillar_analytics[pillar_key] = {
+                "label": pillar_label,
+                "total_sessions": sum(len(v) for v in tasks_in_pillar.values()),
+                "avg_improvement_pct": round(avg_imp, 1),
+                "tasks": task_summaries,
+            }
+
+    patient = db.query(User).filter(User.id == patient_id).first()
+    return {
+        "patient_id": patient_id,
+        "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "Unknown",
+        "total_sessions": len(task_sessions),
+        "pillar_analytics": pillar_analytics,
     }

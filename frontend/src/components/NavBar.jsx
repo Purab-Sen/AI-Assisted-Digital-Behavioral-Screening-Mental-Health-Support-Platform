@@ -84,9 +84,10 @@ export default function NavBar() {
   const userLinks = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/screening', label: 'Screening' },
-    { to: '/journal', label: 'Journal' },
-    { to: '/resources', label: 'Resources' },
     { to: '/tasks', label: 'Tasks' },
+    { to: '/journal', label: 'Journal' },
+    { to: '/analysis', label: 'Analysis' },
+    { to: '/resources', label: 'Resources' },
   ]
 
   const professionalLinks = [
@@ -118,6 +119,11 @@ export default function NavBar() {
   return (
     <nav className="main-nav">
       <div className="main-nav-inner">
+        {/* Mobile hamburger — placed first in DOM so it renders left on mobile */}
+        <button ref={hamburgerRef} className="nav-hamburger" aria-label="Menu" onClick={() => setShowMobileMenu(v => !v)}>
+          <span className={`hamburger-icon ${showMobileMenu ? 'open' : ''}`}></span>
+        </button>
+
         <Link to="/dashboard" className="main-nav-logo">
           <span className="main-nav-logo-icon">🧠</span>
           <span className="main-nav-logo-text">MindBridge{logoSuffix}</span>
@@ -135,11 +141,6 @@ export default function NavBar() {
             </Link>
           ))}
         </div>
-
-        {/* Mobile hamburger */}
-        <button ref={hamburgerRef} className="nav-hamburger" aria-label="Menu" onClick={() => setShowMobileMenu(v => !v)}>
-          <span className={`hamburger-icon ${showMobileMenu ? 'open' : ''}`}></span>
-        </button>
 
         <div className="main-nav-right">
           {/* Role quick-switch buttons */}

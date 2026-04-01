@@ -1,535 +1,111 @@
 /**
  * TaskPlayer Page
  * 
- * Interactive task execution component with simulated behavioral tasks.
+ * Routes to medically accurate neuropsychological task components
+ * across four clinical intervention pillars:
+ *   I.  Executive Function Training & Cognitive Remediation
+ *   II. Social Cognition & Affective Computing
+ *   III.Joint Attention & Triadic Interaction
+ *   IV. Sensory-Perceptual Thresholding & Adaptation
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import taskService from '../services/taskService';
+import {
+  NBackTask,
+  GoNoGoTask,
+  DCCSTask,
+  TowerTask,
+  FERTask,
+  FalseBeliefTask,
+  SocialStoriesTask,
+  ConversationTask,
+  JointAttentionRJA,
+  JointAttentionIJA,
+  VisualTemporalTask,
+  AuditoryTask
+} from './tasks/index';
 import './TaskPlayer.css';
 
-// Task Components for each type
-const AttentionTask = ({ config, onComplete }) => {
-  const [stimuli, setStimuli] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showingStimulus, setShowingStimulus] = useState(false);
-  const [responses, setResponses] = useState([]);
-  const [stimulusStartTime, setStimulusStartTime] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-  
-  useEffect(() => {
-    // Generate stimuli
-    const shapes = config.shapes || ['circle', 'square', 'triangle'];
-    const total = config.total_stimuli || 20;
-    const targetRatio = config.target_ratio || 0.3;
-    
-    const generated = [];
-    for (let i = 0; i < total; i++) {
-      const isTarget = Math.random() < targetRatio;
-      generated.push({
-        shape: isTarget ? 'circle' : shapes[Math.floor(Math.random() * shapes.length)],
-        isTarget
-      });
-    }
-    setStimuli(generated);
-    setIsRunning(true);
-  }, [config]);
-
-  useEffect(() => {
-    if (!isRunning || currentIndex >= stimuli.length) return;
-    
-    // Show stimulus
-    setShowingStimulus(true);
-    setStimulusStartTime(Date.now());
-    
-    const hideTimer = setTimeout(() => {
-      setShowingStimulus(false);
-      
-      // After ISI, move to next stimulus
-      const nextTimer = setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-      }, config.inter_stimulus_interval_ms || 1000);
-      
-      return () => clearTimeout(nextTimer);
-    }, config.stimulus_duration_ms || 500);
-    
-    return () => clearTimeout(hideTimer);
-  }, [currentIndex, stimuli.length, isRunning, config]);
-
-  useEffect(() => {
-    if (currentIndex >= stimuli.length && stimuli.length > 0) {
-      // Calculate results
-      const targets = stimuli.filter(s => s.isTarget).length;
-      const correctHits = responses.filter((r, i) => r.responded && stimuli[i]?.isTarget).length;
-      const commissionErrors = responses.filter((r, i) => r.responded && !stimuli[i]?.isTarget).length;
-      const omissionErrors = targets - correctHits;
-      
-      const reactionTimes = responses
-        .filter((r, i) => r.responded && r.reactionTime && stimuli[i]?.isTarget)
-        .map(r => r.reactionTime);
-      
-      const avgRT = reactionTimes.length > 0
-        ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length
-        : 0;
-      
-      onComplete([
-        { metric_name: 'accuracy', metric_value: (correctHits / targets) * 100 },
-        { metric_name: 'reaction_time_avg', metric_value: avgRT },
-        { metric_name: 'commission_errors', metric_value: commissionErrors },
-        { metric_name: 'omission_errors', metric_value: omissionErrors }
-      ]);
-    }
-  }, [currentIndex, stimuli, responses, onComplete]);
-
-  const handleResponse = useCallback(() => {
-    if (!showingStimulus || responses[currentIndex]) return;
-    
-    const reactionTime = Date.now() - stimulusStartTime;
-    setResponses(prev => {
-      const newResponses = [...prev];
-      newResponses[currentIndex] = { responded: true, reactionTime };
-      return newResponses;
-    });
-  }, [showingStimulus, currentIndex, stimulusStartTime, responses]);
-
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        handleResponse();
-      }
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleResponse]);
-
-  const progress = (currentIndex / stimuli.length) * 100;
-  const currentStimulus = stimuli[currentIndex];
-
-  return (
-    <div className="task-arena attention-task">
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
-      
-      <div className="stimulus-area" onClick={handleResponse}>
-        {showingStimulus && currentStimulus && (
-          <div className={`shape ${currentStimulus.shape}`} />
-        )}
-      </div>
-      
-      <p className="task-hint">Click or press SPACE when you see a CIRCLE</p>
-    </div>
-  );
+// Map task category (from DB) to React component
+const TASK_COMPONENTS = {
+  n_back: NBackTask,
+  go_nogo: GoNoGoTask,
+  dccs: DCCSTask,
+  tower_task: TowerTask,
+  fer: FERTask,
+  false_belief: FalseBeliefTask,
+  social_stories: SocialStoriesTask,
+  conversation: ConversationTask,
+  joint_attention_rja: JointAttentionRJA,
+  joint_attention_ija: JointAttentionIJA,
+  visual_temporal: VisualTemporalTask,
+  auditory_processing: AuditoryTask,
 };
 
-const MemoryTask = ({ config, onComplete }) => {
-  const [phase, setPhase] = useState('showing'); // showing, input, feedback
-  const [sequence, setSequence] = useState([]);
-  const [userSequence, setUserSequence] = useState([]);
-  const [level, setLevel] = useState(config.initial_sequence_length || 3);
-  const [showIndex, setShowIndex] = useState(-1);
-  const [totalCorrect, setTotalCorrect] = useState(0);
-  const [totalAttempts, setTotalAttempts] = useState(0);
-  const [maxReached, setMaxReached] = useState(0);
-  const gridSize = config.grid_size || 4;
-
-  const generateSequence = useCallback((length) => {
-    const totalCells = gridSize * gridSize;
-    const seq = [];
-    for (let i = 0; i < length; i++) {
-      seq.push(Math.floor(Math.random() * totalCells));
-    }
-    return seq;
-  }, [gridSize]);
-
-  useEffect(() => {
-    startNewRound();
-  }, []);
-
-  const startNewRound = () => {
-    const newSeq = generateSequence(level);
-    setSequence(newSeq);
-    setUserSequence([]);
-    setPhase('showing');
-    setShowIndex(-1);
-    
-    // Show sequence
-    let idx = 0;
-    const interval = setInterval(() => {
-      if (idx < newSeq.length) {
-        setShowIndex(newSeq[idx]);
-        setTimeout(() => setShowIndex(-1), 400);
-        idx++;
-      } else {
-        clearInterval(interval);
-        setPhase('input');
-      }
-    }, config.display_time_ms || 600);
-  };
-
-  const handleCellClick = (index) => {
-    if (phase !== 'input') return;
-    
-    const newUserSeq = [...userSequence, index];
-    setUserSequence(newUserSeq);
-    
-    // Check if correct so far
-    if (newUserSeq[newUserSeq.length - 1] !== sequence[newUserSeq.length - 1]) {
-      // Wrong!
-      setPhase('feedback');
-      setTotalAttempts(prev => prev + 1);
-      
-      setTimeout(() => {
-        if (level > config.initial_sequence_length) {
-          setLevel(prev => prev - 1);
-        }
-        startNewRound();
-      }, 1500);
-      return;
-    }
-    
-    // Complete sequence
-    if (newUserSeq.length === sequence.length) {
-      setPhase('feedback');
-      setTotalCorrect(prev => prev + 1);
-      setTotalAttempts(prev => prev + 1);
-      setMaxReached(prev => Math.max(prev, level));
-      
-      setTimeout(() => {
-        if (level < (config.max_sequence_length || 9)) {
-          setLevel(prev => prev + 1);
-        } else {
-          // Max reached - end task
-          onComplete([
-            { metric_name: 'max_sequence', metric_value: Math.max(maxReached, level) },
-            { metric_name: 'accuracy', metric_value: ((totalCorrect + 1) / (totalAttempts + 1)) * 100 },
-            { metric_name: 'total_correct', metric_value: totalCorrect + 1 },
-            { metric_name: 'total_attempts', metric_value: totalAttempts + 1 }
-          ]);
-          return;
-        }
-        startNewRound();
-      }, 1000);
-    }
-  };
-
-  // End after certain attempts
-  useEffect(() => {
-    if (totalAttempts >= 10) {
-      onComplete([
-        { metric_name: 'max_sequence', metric_value: maxReached },
-        { metric_name: 'accuracy', metric_value: (totalCorrect / totalAttempts) * 100 },
-        { metric_name: 'total_correct', metric_value: totalCorrect },
-        { metric_name: 'total_attempts', metric_value: totalAttempts }
-      ]);
-    }
-  }, [totalAttempts, totalCorrect, maxReached, onComplete]);
-
-  const cells = Array(gridSize * gridSize).fill(null);
-
-  return (
-    <div className="task-arena memory-task">
-      <div className="memory-stats">
-        <span>Level: {level}</span>
-        <span>Score: {totalCorrect}/{totalAttempts}</span>
-      </div>
-      
-      <div 
-        className="memory-grid" 
-        style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
-      >
-        {cells.map((_, idx) => (
-          <div
-            key={idx}
-            className={`memory-cell ${showIndex === idx ? 'active' : ''} ${
-              phase === 'input' && userSequence.includes(idx) ? 'selected' : ''
-            }`}
-            onClick={() => handleCellClick(idx)}
-          />
-        ))}
-      </div>
-      
-      <p className="task-hint">
-        {phase === 'showing' && 'Watch the pattern...'}
-        {phase === 'input' && 'Repeat the pattern!'}
-        {phase === 'feedback' && (userSequence.length === sequence.length ? '✓ Correct!' : '✗ Try again')}
-      </p>
-    </div>
-  );
+const PILLAR_INFO = {
+  executive_function: { label: 'Executive Function', color: '#6366f1', icon: '\u{1F9E0}' },
+  social_cognition: { label: 'Social Cognition', color: '#f59e0b', icon: '\u{1F465}' },
+  joint_attention: { label: 'Joint Attention', color: '#10b981', icon: '\u{1F441}\uFE0F' },
+  sensory_perceptual: { label: 'Sensory-Perceptual', color: '#ef4444', icon: '\u{1F3A7}' },
 };
 
-const ProcessingSpeedTask = ({ config, onComplete }) => {
-  const [pairs, setPairs] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [correct, setCorrect] = useState(0);
-  const [incorrect, setIncorrect] = useState(0);
-  const [reactionTimes, setReactionTimes] = useState([]);
-  const [pairStartTime, setPairStartTime] = useState(Date.now());
-  const [timeLeft, setTimeLeft] = useState(config.time_limit_seconds || 60);
-  
-  const symbols = config.symbols || ['★', '●', '■', '▲', '◆', '♦'];
-
-  useEffect(() => {
-    // Generate pairs
-    const generated = [];
-    for (let i = 0; i < 50; i++) {
-      const isMatch = Math.random() < (config.match_probability || 0.5);
-      const symbol1 = symbols[Math.floor(Math.random() * symbols.length)];
-      const symbol2 = isMatch ? symbol1 : symbols.filter(s => s !== symbol1)[Math.floor(Math.random() * (symbols.length - 1))];
-      generated.push({ symbol1, symbol2, isMatch });
-    }
-    setPairs(generated);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          finishTask();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const finishTask = () => {
-    const avgRT = reactionTimes.length > 0
-      ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length
-      : 0;
-    
-    onComplete([
-      { metric_name: 'correct_responses', metric_value: correct },
-      { metric_name: 'incorrect_responses', metric_value: incorrect },
-      { metric_name: 'reaction_time_avg', metric_value: avgRT },
-      { metric_name: 'throughput', metric_value: correct + incorrect }
-    ]);
-  };
-
-  const handleResponse = (isSame) => {
-    if (currentIndex >= pairs.length || timeLeft <= 0) return;
-    
-    const rt = Date.now() - pairStartTime;
-    setReactionTimes(prev => [...prev, rt]);
-    
-    if (pairs[currentIndex].isMatch === isSame) {
-      setCorrect(prev => prev + 1);
-    } else {
-      setIncorrect(prev => prev + 1);
-    }
-    
-    setCurrentIndex(prev => prev + 1);
-    setPairStartTime(Date.now());
-  };
-
-  const currentPair = pairs[currentIndex];
-
-  return (
-    <div className="task-arena processing-task">
-      <div className="timer-bar">
-        <div 
-          className="timer-fill" 
-          style={{ width: `${(timeLeft / (config.time_limit_seconds || 60)) * 100}%` }}
-        />
-        <span className="timer-text">{timeLeft}s</span>
-      </div>
-      
-      {currentPair && timeLeft > 0 && (
-        <>
-          <div className="symbol-pair">
-            <span className="symbol">{currentPair.symbol1}</span>
-            <span className="symbol">{currentPair.symbol2}</span>
-          </div>
-          
-          <div className="response-buttons">
-            <button className="btn-same" onClick={() => handleResponse(true)}>
-              SAME
-            </button>
-            <button className="btn-different" onClick={() => handleResponse(false)}>
-              DIFFERENT
-            </button>
-          </div>
-        </>
-      )}
-      
-      <div className="score-display">
-        Score: {correct}
-      </div>
-    </div>
-  );
+const DIFFICULTY_LABELS = {
+  1: { label: 'Easy', color: '#10b981', description: 'Introductory level' },
+  2: { label: 'Medium', color: '#f59e0b', description: 'Intermediate challenge' },
+  3: { label: 'Hard', color: '#ef4444', description: 'Advanced difficulty' },
 };
 
-const ResponseInhibitionTask = ({ config, onComplete }) => {
-  const [trials, setTrials] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showingStimulus, setShowingStimulus] = useState(false);
-  const [responses, setResponses] = useState([]);
-  const [isRunning, setIsRunning] = useState(false);
-
-  useEffect(() => {
-    const total = config.total_trials || 40;
-    const goRatio = config.go_ratio || 0.75;
-    
-    const generated = [];
-    for (let i = 0; i < total; i++) {
-      generated.push({ isGo: Math.random() < goRatio });
-    }
-    setTrials(generated);
-    setIsRunning(true);
-  }, [config]);
-
-  useEffect(() => {
-    if (!isRunning || currentIndex >= trials.length) return;
-    
-    setShowingStimulus(true);
-    
-    const hideTimer = setTimeout(() => {
-      // Record non-response for current trial
-      setResponses(prev => {
-        if (prev[currentIndex] === undefined) {
-          const newResponses = [...prev];
-          newResponses[currentIndex] = { responded: false };
-          return newResponses;
-        }
-        return prev;
-      });
-      
-      setShowingStimulus(false);
-      
-      const nextTimer = setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-      }, config.inter_stimulus_interval_ms || 800);
-      
-      return () => clearTimeout(nextTimer);
-    }, config.stimulus_duration_ms || 400);
-    
-    return () => clearTimeout(hideTimer);
-  }, [currentIndex, trials.length, isRunning, config]);
-
-  useEffect(() => {
-    if (currentIndex >= trials.length && trials.length > 0) {
-      const goTrials = trials.filter(t => t.isGo);
-      const nogoTrials = trials.filter(t => !t.isGo);
-      
-      const goHits = responses.filter((r, i) => r?.responded && trials[i]?.isGo).length;
-      const falseAlarms = responses.filter((r, i) => r?.responded && !trials[i]?.isGo).length;
-      
-      const goRTs = responses
-        .filter((r, i) => r?.responded && r?.reactionTime && trials[i]?.isGo)
-        .map(r => r.reactionTime);
-      
-      const avgGoRT = goRTs.length > 0 ? goRTs.reduce((a, b) => a + b, 0) / goRTs.length : 0;
-      
-      onComplete([
-        { metric_name: 'go_accuracy', metric_value: (goHits / goTrials.length) * 100 },
-        { metric_name: 'nogo_accuracy', metric_value: ((nogoTrials.length - falseAlarms) / nogoTrials.length) * 100 },
-        { metric_name: 'go_reaction_time', metric_value: avgGoRT },
-        { metric_name: 'false_alarms', metric_value: falseAlarms }
-      ]);
-    }
-  }, [currentIndex, trials, responses, onComplete]);
-
-  const handleResponse = useCallback(() => {
-    if (!showingStimulus || responses[currentIndex]) return;
-    
-    setResponses(prev => {
-      const newResponses = [...prev];
-      newResponses[currentIndex] = { responded: true, reactionTime: Date.now() };
-      return newResponses;
-    });
-  }, [showingStimulus, currentIndex, responses]);
-
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        handleResponse();
-      }
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleResponse]);
-
-  const progress = (currentIndex / trials.length) * 100;
-  const currentTrial = trials[currentIndex];
-
-  return (
-    <div className="task-arena inhibition-task">
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
-      
-      <div className="stimulus-area" onClick={handleResponse}>
-        {showingStimulus && currentTrial && (
-          <div className={`go-circle ${currentTrial.isGo ? 'go' : 'nogo'}`} />
-        )}
-      </div>
-      
-      <p className="task-hint">Press SPACE for GREEN, don't press for RED</p>
-    </div>
-  );
-};
-
-// Generic placeholder for other task types
-const GenericTask = ({ config, onComplete }) => {
-  const [progress, setProgress] = useState(0);
-  
-  useEffect(() => {
-    const duration = 10000; // 10 seconds demo
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          onComplete([
-            { metric_name: 'score', metric_value: 75 + Math.random() * 20 },
-            { metric_name: 'completion_time', metric_value: duration / 1000 }
-          ]);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 200);
-    
-    return () => clearInterval(interval);
-  }, [onComplete]);
-
-  return (
-    <div className="task-arena generic-task">
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
-      <p>Task in progress... {Math.round(progress)}%</p>
-    </div>
-  );
-};
-
-// Main TaskPlayer Component
 function TaskPlayer() {
   const { taskId } = useParams();
   const navigate = useNavigate();
-  
-  const [phase, setPhase] = useState('loading'); // loading, instructions, playing, results
+
+  const [phase, setPhase] = useState('loading'); // loading, difficulty, instructions, playing, results, error
+  const [taskDetail, setTaskDetail] = useState(null);
   const [sessionData, setSessionData] = useState(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState(1);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
 
+  // Load task detail first to show difficulty selection
   useEffect(() => {
-    loadTask();
+    loadTaskDetail();
   }, [taskId]);
 
-  const loadTask = async () => {
+  const loadTaskDetail = async () => {
     try {
-      const data = await taskService.startSession(parseInt(taskId));
-      setSessionData(data);
-      setPhase('instructions');
+      setPhase('loading');
+      const data = await taskService.getTaskDetail(parseInt(taskId));
+      setTaskDetail(data);
+      // If task has multiple difficulty levels, show selector; otherwise go to instructions
+      const numLevels = data.difficulty_levels ? Object.keys(data.difficulty_levels).length : 0;
+      if (numLevels > 1) {
+        setPhase('difficulty');
+      } else {
+        await startSession(parseInt(taskId), 1);
+      }
     } catch (err) {
-      console.error('Failed to start task:', err);
+      console.error('Failed to load task:', err);
       setError(err.response?.data?.detail || 'Failed to load task');
       setPhase('error');
     }
+  };
+
+  const startSession = async (id, difficulty) => {
+    try {
+      setPhase('loading');
+      const data = await taskService.startSession(id, difficulty);
+      setSessionData(data);
+      setPhase('instructions');
+    } catch (err) {
+      console.error('Failed to start session:', err);
+      setError(err.response?.data?.detail || 'Failed to start task session');
+      setPhase('error');
+    }
+  };
+
+  const handleDifficultySelect = async () => {
+    await startSession(parseInt(taskId), selectedDifficulty);
   };
 
   const handleStartTask = () => {
@@ -543,118 +119,239 @@ function TaskPlayer() {
       setPhase('results');
     } catch (err) {
       console.error('Failed to submit results:', err);
-      setError('Failed to save results');
+      setError('Failed to save results. Your progress may not have been recorded.');
+      setPhase('error');
     }
   };
 
   const handlePlayAgain = () => {
-    setPhase('loading');
     setResults(null);
-    loadTask();
+    setSessionData(null);
+    if (taskDetail) {
+      const numLevels = taskDetail.difficulty_levels ? Object.keys(taskDetail.difficulty_levels).length : 0;
+      if (numLevels > 1) {
+        setPhase('difficulty');
+      } else {
+        startSession(parseInt(taskId), 1);
+      }
+    } else {
+      loadTaskDetail();
+    }
   };
 
   const renderTaskComponent = () => {
     if (!sessionData) return null;
-    
-    const props = {
-      config: sessionData.config,
-      onComplete: handleTaskComplete
-    };
 
-    switch (sessionData.task_type) {
-      case 'attention':
-        return <AttentionTask {...props} />;
-      case 'memory':
-        return <MemoryTask {...props} />;
-      case 'processing_speed':
-        return <ProcessingSpeedTask {...props} />;
-      case 'response_inhibition':
-        return <ResponseInhibitionTask {...props} />;
-      default:
-        return <GenericTask {...props} />;
+    const category = sessionData.category;
+    const Component = TASK_COMPONENTS[category];
+
+    if (!Component) {
+      return (
+        <div className="fallback-task">
+          <h3>Task Not Available</h3>
+          <p>The task component for <strong>{category}</strong> is not yet implemented.</p>
+          <button className="btn btn-secondary" onClick={() => navigate('/tasks')}>
+            Back to Tasks
+          </button>
+        </div>
+      );
     }
+
+    return (
+      <Component
+        config={sessionData.config}
+        onComplete={handleTaskComplete}
+      />
+    );
   };
 
+  const pillar = sessionData?.pillar || taskDetail?.pillar;
+  const pillarStyle = pillar ? PILLAR_INFO[pillar] : null;
+
+  // --- LOADING ---
   if (phase === 'loading') {
     return (
       <div className="task-player">
-        <div className="loading">Loading task...</div>
+        <div className="loading-container">
+          <div className="loading-spinner" />
+          <p>Preparing task...</p>
+        </div>
       </div>
     );
   }
 
+  // --- ERROR ---
   if (phase === 'error') {
     return (
       <div className="task-player">
         <div className="error-container">
-          <h2>Error</h2>
+          <h2>Something went wrong</h2>
           <p>{error}</p>
-          <button className="btn btn-primary" onClick={() => navigate('/tasks')}>
-            Back to Tasks
-          </button>
+          <div className="error-actions">
+            <button className="btn btn-primary" onClick={loadTaskDetail}>
+              Try Again
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/tasks')}>
+              Back to Tasks
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (phase === 'instructions') {
+  // --- DIFFICULTY SELECTION ---
+  if (phase === 'difficulty' && taskDetail) {
+    const levels = taskDetail.difficulty_levels || {};
+    return (
+      <div className="task-player">
+        <div className="difficulty-screen">
+          {pillarStyle && (
+            <div className="pillar-badge" style={{ backgroundColor: pillarStyle.color }}>
+              {pillarStyle.icon} {pillarStyle.label}
+            </div>
+          )}
+          <h1>{taskDetail.name}</h1>
+          <p className="task-desc">{taskDetail.description}</p>
+
+          <h2>Select Difficulty Level</h2>
+          <div className="difficulty-options">
+            {Object.entries(levels).map(([lvl, cfg]) => {
+              const lvlNum = parseInt(lvl);
+              const info = DIFFICULTY_LABELS[lvlNum] || { label: `Level ${lvl}`, color: '#6b7280' };
+              return (
+                <button
+                  key={lvl}
+                  className={`difficulty-card ${selectedDifficulty === lvlNum ? 'selected' : ''}`}
+                  onClick={() => setSelectedDifficulty(lvlNum)}
+                  style={{
+                    borderColor: selectedDifficulty === lvlNum ? info.color : '#e5e7eb',
+                    boxShadow: selectedDifficulty === lvlNum ? `0 0 0 3px ${info.color}33` : 'none'
+                  }}
+                >
+                  <div className="diff-badge" style={{ backgroundColor: info.color }}>
+                    {info.label}
+                  </div>
+                  <p className="diff-description">{cfg.label || cfg.description || info.description}</p>
+                  {cfg.description && cfg.label && (
+                    <p className="diff-detail">{cfg.description}</p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="difficulty-actions">
+            <button className="btn btn-primary btn-large" onClick={handleDifficultySelect}>
+              Continue with {DIFFICULTY_LABELS[selectedDifficulty]?.label || `Level ${selectedDifficulty}`}
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/tasks')}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- INSTRUCTIONS ---
+  if (phase === 'instructions' && sessionData) {
+    const diffInfo = DIFFICULTY_LABELS[sessionData.difficulty_level] || {};
     return (
       <div className="task-player">
         <div className="instructions-screen">
+          {pillarStyle && (
+            <div className="pillar-badge" style={{ backgroundColor: pillarStyle.color }}>
+              {pillarStyle.icon} {pillarStyle.label}
+            </div>
+          )}
           <h1>{sessionData.task_name}</h1>
-          <div className="instructions-content">
-            <pre>{sessionData.instructions}</pre>
+
+          <div className="instruction-meta">
+            <span className="diff-indicator" style={{ backgroundColor: diffInfo.color || '#6b7280' }}>
+              {diffInfo.label || `Level ${sessionData.difficulty_level}`}
+            </span>
           </div>
-          <button className="btn btn-primary btn-large" onClick={handleStartTask}>
-            Start Task
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/tasks')}>
-            Cancel
-          </button>
+
+          <div className="instructions-content">
+            {sessionData.instructions.split('\n').map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+
+          <div className="instructions-actions">
+            <button className="btn btn-primary btn-large" onClick={handleStartTask}>
+              Start Task
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/tasks')}>
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (phase === 'playing') {
+  // --- PLAYING ---
+  if (phase === 'playing' && sessionData) {
     return (
       <div className="task-player">
-        <div className="task-header">
-          <h2>{sessionData.task_name}</h2>
+        <div className="task-header-bar">
+          <div className="task-header-left">
+            {pillarStyle && (
+              <span className="pillar-tag" style={{ backgroundColor: pillarStyle.color }}>
+                {pillarStyle.icon}
+              </span>
+            )}
+            <h2>{sessionData.task_name}</h2>
+          </div>
+          <div className="task-header-right">
+            <span className="diff-tag" style={{
+              backgroundColor: (DIFFICULTY_LABELS[sessionData.difficulty_level]?.color || '#6b7280') + '22',
+              color: DIFFICULTY_LABELS[sessionData.difficulty_level]?.color || '#6b7280'
+            }}>
+              {DIFFICULTY_LABELS[sessionData.difficulty_level]?.label || `Level ${sessionData.difficulty_level}`}
+            </span>
+          </div>
         </div>
-        {renderTaskComponent()}
+        <div className="task-arena-wrapper">
+          {renderTaskComponent()}
+        </div>
       </div>
     );
   }
 
-  if (phase === 'results') {
+  // --- RESULTS ---
+  if (phase === 'results' && results) {
     return (
       <div className="task-player">
         <div className="results-screen">
+          {pillarStyle && (
+            <div className="pillar-badge" style={{ backgroundColor: pillarStyle.color }}>
+              {pillarStyle.icon} {pillarStyle.label}
+            </div>
+          )}
           <h1>Task Complete!</h1>
           <h2>{results.task_name}</h2>
-          
+
           <div className="results-summary">
             <h3>Your Results</h3>
             <div className="metrics-grid">
               {results.results.map((r, idx) => (
                 <div key={idx} className="metric-card">
-                  <span className="metric-name">{r.metric_name.replace(/_/g, ' ')}</span>
+                  <span className="metric-name">
+                    {r.metric_name.replace(/_/g, ' ')}
+                  </span>
                   <span className="metric-value">
-                    {r.metric_name.includes('accuracy') || r.metric_name.includes('score')
-                      ? `${Math.round(r.metric_value)}%`
-                      : r.metric_name.includes('time')
-                        ? `${Math.round(r.metric_value)}ms`
-                        : Math.round(r.metric_value * 100) / 100
-                    }
+                    {formatMetricValue(r.metric_name, r.metric_value)}
                   </span>
                 </div>
               ))}
             </div>
-            
+
             {results.performance_summary?.interpretation?.length > 0 && (
               <div className="interpretation">
-                <h4>Interpretation</h4>
+                <h4>Clinical Interpretation</h4>
                 <ul>
                   {results.performance_summary.interpretation.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -663,7 +360,7 @@ function TaskPlayer() {
               </div>
             )}
           </div>
-          
+
           <div className="results-actions">
             <button className="btn btn-primary" onClick={handlePlayAgain}>
               Play Again
@@ -681,6 +378,20 @@ function TaskPlayer() {
   }
 
   return null;
+}
+
+function formatMetricValue(name, value) {
+  const n = name.toLowerCase();
+  if (n.includes('accuracy') || n.includes('rate') || n.includes('score') || n.includes('percentage')) {
+    return `${Math.round(value)}%`;
+  }
+  if (n.includes('time') || n.includes('latency') || n.includes('rt') || n.includes('duration')) {
+    return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`;
+  }
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  return (Math.round(value * 100) / 100).toString();
 }
 
 export default TaskPlayer;

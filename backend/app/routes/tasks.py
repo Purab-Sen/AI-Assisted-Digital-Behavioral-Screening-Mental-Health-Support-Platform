@@ -55,9 +55,12 @@ async def get_all_tasks(
                 id=t.id,
                 name=t.name,
                 type=t.type,
+                pillar=t.pillar,
+                category=t.category,
                 description=t.description,
                 instructions=service.get_task_config(t)["instructions"][:200] + "...",
-                estimated_duration=service.get_task_config(t)["estimated_duration"]
+                estimated_duration=service.get_task_config(t)["estimated_duration"],
+                difficulty_levels=service.get_task_config(t)["difficulty_levels"]
             )
             for t in tasks
         ],
@@ -90,9 +93,12 @@ async def get_task_detail(
         id=task.id,
         name=task.name,
         type=task.type,
+        pillar=task.pillar,
+        category=task.category,
         description=task.description,
         instructions=config["instructions"],
         estimated_duration=config["estimated_duration"],
+        difficulty_levels=config["difficulty_levels"],
         config=config["config"]
     )
 
@@ -115,7 +121,7 @@ async def start_task_session(
     service = TaskService(db)
     
     try:
-        session, config = service.start_session(current_user.id, request.task_id)
+        session, config = service.start_session(current_user.id, request.task_id, request.difficulty_level)
         task = service.get_task_by_id(request.task_id)
         
         return TaskSessionStartResponse(
@@ -123,6 +129,9 @@ async def start_task_session(
             task_id=task.id,
             task_name=task.name,
             task_type=task.type,
+            pillar=task.pillar,
+            category=task.category,
+            difficulty_level=session.difficulty_level,
             instructions=config["instructions"],
             config=config["config"],
             started_at=session.started_at
@@ -173,6 +182,9 @@ async def submit_task_session(
             task_id=task.id,
             task_name=task.name,
             task_type=task.type,
+            pillar=task.pillar,
+            category=task.category,
+            difficulty_level=completed_session.difficulty_level,
             started_at=completed_session.started_at,
             completed_at=completed_session.completed_at,
             duration_seconds=duration,
@@ -226,6 +238,9 @@ async def get_task_session(
         task_id=task.id,
         task_name=task.name,
         task_type=task.type,
+        pillar=task.pillar,
+        category=task.category,
+        difficulty_level=session.difficulty_level,
         started_at=session.started_at,
         completed_at=session.completed_at,
         duration_seconds=duration,
@@ -291,6 +306,9 @@ async def get_task_history(
             task_id=session.task_id,
             task_name=task.name if task else "Unknown",
             task_type=task.type if task else None,
+            pillar=task.pillar if task else None,
+            category=task.category if task else None,
+            difficulty_level=session.difficulty_level,
             started_at=session.started_at,
             completed_at=session.completed_at,
             is_complete=session.completed_at is not None,
