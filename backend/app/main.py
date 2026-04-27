@@ -25,8 +25,9 @@ app = FastAPI(
     title=settings.APP_NAME,
     description="AI-assisted behavioral screening and support platform for ASD",
     version=settings.APP_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    openapi_url="/api/v1/openapi.json",
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc"
 )
 
 app.state.limiter = limiter
@@ -109,7 +110,7 @@ def on_startup():
 # -----------------------------
 # Root Endpoints
 # -----------------------------
-@app.get("/")
+@app.get("/api/v1")
 def root():
     return {
         "message": "ASD Screening & Support Platform API",
@@ -117,6 +118,6 @@ def root():
         "docs": "/docs"
     }
 
-@app.get("/health")
+@app.get("/api/v1/health")
 def health_check():
     return {"status": "healthy"}

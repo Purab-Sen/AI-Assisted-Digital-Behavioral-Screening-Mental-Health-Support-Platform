@@ -47,49 +47,12 @@ COPY --from=frontend-builder /app/frontend/dist/ /usr/share/nginx/html/
 # =========================
 RUN rm /etc/nginx/sites-enabled/default
 
-RUN cat > /etc/nginx/conf.d/app.conf <<'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Frontend (SPA)
-    location / {
-        try_files $uri /index.html;
-    }
-
-    # Backend API (FIXED HERE)
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000;   # ❗ REMOVED TRAILING SLASH
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # Swagger Docs
-    location /docs {
-        proxy_pass http://127.0.0.1:8000/docs;
-    }
-}
-EOF
+COPY nginx.conf /etc/nginx/conf.d/app.conf
 
 # =========================
 # Start Script
 # =========================
-RUN cat > /start.sh <<'EOF'
-#!/bin/bash
-set -e
-
-echo "Starting backend..."
-cd /app/backend
-
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-
-echo "Starting nginx..."
-nginx -g "daemon off;"
-EOF
-
+COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 EXPOSE 80
