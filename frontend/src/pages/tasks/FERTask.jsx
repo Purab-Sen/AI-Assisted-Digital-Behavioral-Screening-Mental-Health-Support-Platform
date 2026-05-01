@@ -9,12 +9,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Emoji-based face representations with intensity descriptions
+// Clinical note: At 0.2 intensity, subtle distinct emojis are used rather than
+// all-neutral (which would make discrimination impossible)
 const EMOTION_DATA = {
   happy: {
     faces: {
       1.0: { emoji: '😄', description: 'Clearly smiling with bright eyes' },
       0.5: { emoji: '🙂', description: 'Slight upward curve of lips' },
-      0.2: { emoji: '😐', description: 'Very subtle hint of warmth in expression' },
+      0.2: { emoji: '🫠', description: 'Very subtle hint of warmth in expression' },
     },
     color: '#2ecc71',
   },
@@ -22,7 +24,7 @@ const EMOTION_DATA = {
     faces: {
       1.0: { emoji: '😢', description: 'Clearly tearful and downcast' },
       0.5: { emoji: '😞', description: 'Mildly downturned expression' },
-      0.2: { emoji: '😐', description: 'Very subtle drooping of features' },
+      0.2: { emoji: '🫤', description: 'Very subtle drooping of features' },
     },
     color: '#3498db',
   },
@@ -30,7 +32,7 @@ const EMOTION_DATA = {
     faces: {
       1.0: { emoji: '😠', description: 'Clearly furrowed brows, tight jaw' },
       0.5: { emoji: '😤', description: 'Mild tension in brow area' },
-      0.2: { emoji: '😐', description: 'Very subtle tension in face' },
+      0.2: { emoji: '😑', description: 'Very subtle tension in face' },
     },
     color: '#e74c3c',
   },
@@ -38,7 +40,7 @@ const EMOTION_DATA = {
     faces: {
       1.0: { emoji: '😨', description: 'Wide eyes, open mouth, raised brows' },
       0.5: { emoji: '😟', description: 'Slightly widened eyes' },
-      0.2: { emoji: '😐', description: 'Very subtle eyebrow raise' },
+      0.2: { emoji: '🫣', description: 'Very subtle eyebrow raise' },
     },
     color: '#9b59b6',
   },
@@ -46,7 +48,7 @@ const EMOTION_DATA = {
     faces: {
       1.0: { emoji: '😲', description: 'Wide eyes, dropped jaw, raised brows' },
       0.5: { emoji: '😯', description: 'Slightly raised brows' },
-      0.2: { emoji: '😐', description: 'Barely perceptible widening of eyes' },
+      0.2: { emoji: '🤨', description: 'Barely perceptible widening of eyes' },
     },
     color: '#f39c12',
   },
@@ -54,19 +56,37 @@ const EMOTION_DATA = {
     faces: {
       1.0: { emoji: '😐', description: 'Relaxed, no particular expression' },
       0.5: { emoji: '😐', description: 'Relaxed, no particular expression' },
-      0.2: { emoji: '😐', description: 'Relaxed, no particular expression' },
+      0.2: { emoji: '😶', description: 'Completely flat affect' },
     },
     color: '#95a5a6',
   },
 };
 
 const CONTEXT_SCENARIOS = [
+  // Happy contexts
   { text: 'At a birthday party', emotion_hint: 'happy' },
+  { text: 'Reunited with a friend after a long time', emotion_hint: 'happy' },
+  { text: 'Won first place in a race', emotion_hint: 'happy' },
+  // Sad contexts
   { text: 'Lost their favorite toy', emotion_hint: 'sad' },
+  { text: 'Their best friend moved away', emotion_hint: 'sad' },
+  { text: 'Their pet is feeling sick', emotion_hint: 'sad' },
+  // Angry contexts
   { text: 'Someone cut in line', emotion_hint: 'angry' },
+  { text: 'Their sibling broke their drawing', emotion_hint: 'angry' },
+  { text: 'They were blamed for something they didn\'t do', emotion_hint: 'angry' },
+  // Fearful contexts
   { text: 'Heard a loud crash', emotion_hint: 'fearful' },
+  { text: 'Walking alone in a dark hallway', emotion_hint: 'fearful' },
+  { text: 'A big dog is running toward them', emotion_hint: 'fearful' },
+  // Surprised contexts
   { text: 'Found an unexpected gift', emotion_hint: 'surprised' },
+  { text: 'A friend jumped out from behind the door', emotion_hint: 'surprised' },
+  { text: 'The teacher cancelled the test', emotion_hint: 'surprised' },
+  // Neutral contexts
   { text: 'Waiting at a bus stop', emotion_hint: 'neutral' },
+  { text: 'Sitting in the waiting room at the dentist', emotion_hint: 'neutral' },
+  { text: 'Reading a grocery list', emotion_hint: 'neutral' },
 ];
 
 function FERTask({ config, onComplete }) {
@@ -137,17 +157,23 @@ function FERTask({ config, onComplete }) {
     if (currentIndex >= trials.length && trials.length > 0 && phase === 'playing') {
       setPhase('done');
 
-      // Calculate per-emotion accuracy
+      // Calculate per-emotion accuracy + confusion matrix
       const emotionCorrect = {};
       const emotionTotal = {};
+      const confusionMatrix = {}; // { actual_emotion: { chosen_emotion: count } }
       let totalCorrect = 0;
       const rts = [];
+
+      emotions.forEach(e => { confusionMatrix[e] = {}; emotions.forEach(e2 => { confusionMatrix[e][e2] = 0; }); });
 
       responses.forEach((resp, i) => {
         const trial = trials[i];
         if (!trial) return;
         const emotion = trial.emotion;
         emotionTotal[emotion] = (emotionTotal[emotion] || 0) + 1;
+        if (resp.answer) {
+          confusionMatrix[emotion][resp.answer] = (confusionMatrix[emotion][resp.answer] || 0) + 1;
+        }
         if (resp.answer === emotion) {
           totalCorrect++;
           emotionCorrect[emotion] = (emotionCorrect[emotion] || 0) + 1;
@@ -165,11 +191,24 @@ function FERTask({ config, onComplete }) {
         return total > 0 ? Math.round((correct / total) * 100) : 0;
       }).join(',');
 
+      // Find top confusion pairs (actual ≠ chosen)
+      let topConfusion = [];
+      emotions.forEach(actual => {
+        emotions.forEach(chosen => {
+          if (actual !== chosen && confusionMatrix[actual][chosen] > 0) {
+            topConfusion.push({ actual, chosen, count: confusionMatrix[actual][chosen] });
+          }
+        });
+      });
+      topConfusion.sort((a, b) => b.count - a.count);
+      const confusionStr = topConfusion.slice(0, 3).map(c => `${c.actual}→${c.chosen}:${c.count}`).join(';');
+
       onComplete([
         { metric_name: 'overall_accuracy', metric_value: Math.round(overallAccuracy * 100) / 100 },
         { metric_name: 'avg_reaction_time', metric_value: Math.round(avgRT) },
         { metric_name: 'intensity_threshold', metric_value: intensity * 100 },
-        { metric_name: 'accuracy_per_emotion', metric_value: overallAccuracy }, // simplified
+        { metric_name: 'accuracy_per_emotion', metric_value: overallAccuracy },
+        { metric_name: 'top_confusions', metric_value: topConfusion.length > 0 ? topConfusion[0].count : 0 },
       ]);
     }
   }, [currentIndex, trials.length, phase]);
@@ -215,7 +254,17 @@ function FERTask({ config, onComplete }) {
           <div className="fer-face-display">
             <span className="fer-emoji">{currentTrial.face.emoji}</span>
             {intensity < 1.0 && (
-              <div className="fer-description">{currentTrial.face.description}</div>
+              <div className="fer-description" style={{
+                fontSize: intensity <= 0.2 ? '15px' : '13px',
+                fontWeight: intensity <= 0.2 ? 600 : 400,
+                color: intensity <= 0.2 ? '#334155' : '#64748b',
+                background: intensity <= 0.2 ? '#f0f9ff' : 'transparent',
+                padding: intensity <= 0.2 ? '8px 16px' : '4px 8px',
+                borderRadius: 8,
+                marginTop: 8,
+              }}>
+                💡 {currentTrial.face.description}
+              </div>
             )}
           </div>
         </div>

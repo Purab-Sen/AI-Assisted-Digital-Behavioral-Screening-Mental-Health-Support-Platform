@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { formatDateTimeIST } from '../utils/formatDate'
 import './NavBar.css'
 
 export default function NavBar() {
@@ -185,7 +186,7 @@ export default function NavBar() {
                       >
                         <div className="notif-item-title">{n.title}</div>
                         {n.message && <div className="notif-item-msg">{n.message}</div>}
-                        <div className="notif-item-time">{new Date(n.created_at).toLocaleString()}</div>
+                        <div className="notif-item-time">{formatDateTimeIST(n.created_at)}</div>
                       </div>
                     ))
                   )}

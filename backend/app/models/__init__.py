@@ -12,6 +12,11 @@ from app.models.professional import (
 )
 from app.models.consent import ConsentLog
 from app.models.notification import Notification
+from app.models.email_verification import EmailVerification
+from app.models.additional_screening import AdditionalScreening
+from app.models.comorbidity_screening import ComorbidityScreening
+from app.models.behavioral_observation import BehavioralObservation
+from app.models.referral import Referral
 
 __all__ = [
     "User",
@@ -37,4 +42,8 @@ __all__ = [
     "ProfessionalNote",
     "ConsentLog",
     "Notification",
+    "AdditionalScreening",
+    "ComorbidityScreening",
+    "BehavioralObservation",
+    "Referral",
 ]

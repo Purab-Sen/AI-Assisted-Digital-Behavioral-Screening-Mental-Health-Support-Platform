@@ -44,3 +44,5 @@ frontend/.env.local
 Thumbs.db
 *.swp
 *.swo
+
+AI_RECOMMENDATION_ENGINE.md

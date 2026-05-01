@@ -23,11 +23,25 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
     GEMINI_API_KEY: str = ""
-    
-    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"
-    GEMINI_FALLBACK_MODELS: List[str] = ["gemini-2.5-mini", "gemini-2.1"]
-    GEMINI_MAX_RETRY_ATTEMPTS: int = 3
-    GEMINI_RETRY_DELAY_SECONDS: int = 60
+
+    # Email (SMTP) settings — leave MAIL_USERNAME empty to run in log-only mode
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = "noreply@mindbridge.com"
+    MAIL_FROM_NAME: str = "MindBridge"
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_USE_TLS: bool = True
+
+    # Admin notification email (receives professional-application alerts)
+    MAIL_ADMIN_EMAIL: str = ""
+
+    # OTP settings
+    OTP_EXPIRE_MINUTES: int = 10
+    OTP_MAX_ATTEMPTS: int = 5
+
+    # Frontend base URL (for links in emails)
+    FRONTEND_URL: str = "http://localhost:5173"
 
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_PERIOD: int = 60

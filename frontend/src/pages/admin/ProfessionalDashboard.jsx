@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from "../../services/api"
 import NavBar from "../../components/NavBar"
-import Modal from '../../components/Modal'
+import { formatDateTimeIST } from '../../utils/formatDate'
 import "./ProfessionalDashboard.css"
 
 function ProfessionalDashboard() {
@@ -12,7 +12,6 @@ function ProfessionalDashboard() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -100,18 +99,18 @@ function ProfessionalDashboard() {
           {requests.length > 0 ? requests.map(req => (
             <div key={req.id} className="request-card">
               <div className="request-header">
-                <span className="request-user">User #{req.user_id}</span>
+                <span className="request-user">{req.first_name || req.last_name ? `${req.first_name || ''} ${req.last_name || ''}`.trim() : `User #${req.user_id}`}</span>
               </div>
               <p className="request-msg">{req.message || 'No message provided'}</p>
-              <p className="request-date">Requested: {new Date(req.created_at).toLocaleString()}</p>
+              <p className="request-date">Requested: {formatDateTimeIST(req.created_at)}</p>
               <div className="request-btn-group">
                 <button className="btn-accept" onClick={async () => {
                   try { await api.patch(`/professional/consultations/${req.id}`, { status: 'accepted' }); fetchProfessionalData() }
-                  catch (err) { setModal({ open: true, title: 'Error', message: 'Failed to accept', onClose: () => setModal({ ...modal, open: false }) }) }
+                  catch (err) { alert('Failed to accept') }
                 }}>Accept</button>
                 <button className="btn-reject" onClick={async () => {
                   try { await api.patch(`/professional/consultations/${req.id}`, { status: 'declined' }); fetchProfessionalData() }
-                  catch (err) { setModal({ open: true, title: 'Error', message: 'Failed to decline', onClose: () => setModal({ ...modal, open: false }) }) }
+                  catch (err) { alert('Failed to decline') }
                 }}>Decline</button>
               </div>
             </div>
@@ -129,7 +128,6 @@ function ProfessionalDashboard() {
           </div>
         </div>
       </div>
-      <Modal {...modal} />
     </div>
   )
 }

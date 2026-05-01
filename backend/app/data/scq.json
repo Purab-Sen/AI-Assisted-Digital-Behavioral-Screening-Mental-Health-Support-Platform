@@ -1,0 +1,68 @@
+{
+  "instrument": "scq",
+  "title": "Social Communication Questionnaire (SCQ-Lifetime)",
+  "description": "A 40-item caregiver-report screening tool assessing communication skills and social functioning in children aged 4+ years. Based on published domain structure for social communication assessment.",
+  "age_range": "4+ years",
+  "scoring": {
+    "scale": "0 or 1 per item (Yes/No — scoring direction varies)",
+    "max_score": 39,
+    "severity_levels": [
+      {"range": [0, 10], "label": "non_clinical", "description": "No significant concerns"},
+      {"range": [11, 14], "label": "mild", "description": "Borderline — further monitoring recommended"},
+      {"range": [15, 39], "label": "clinical", "description": "Above clinical threshold — comprehensive ASD evaluation recommended"}
+    ],
+    "clinical_threshold": 15,
+    "domains": {
+      "reciprocal_social_interaction": {"items": [2,4,5,6,7,8,10,11,12,14,15,16,17,19,20,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]},
+      "communication": {"items": [3,9,13,18,21,22,23,24]},
+      "restricted_repetitive": {"items": [1]}
+    },
+    "clinical_note": "The SCQ is a screening tool intended to identify individuals who may benefit from a comprehensive diagnostic evaluation for ASD."
+  },
+  "questions": [
+    {"id": 1, "domain": "restricted_repetitive", "text": "Does your child now have phrases or sentences that he/she uses repeatedly in almost the same way (like quoting from a TV show)?", "score_if": "yes"},
+    {"id": 2, "domain": "reciprocal_social_interaction", "text": "Can you have a back and forth 'conversation' with your child that involves taking turns or building on what you have said?", "score_if": "no"},
+    {"id": 3, "domain": "communication", "text": "Has your child ever used odd phrases or said the same thing over and over in almost exactly the same way (either phrases he/she has heard others use or ones he/she has made up)?", "score_if": "yes"},
+    {"id": 4, "domain": "reciprocal_social_interaction", "text": "Has your child ever used socially inappropriate questions or statements (e.g., asking someone personal questions or making personal comments at inappropriate times)?", "score_if": "yes"},
+    {"id": 5, "domain": "reciprocal_social_interaction", "text": "Has your child ever got his/her pronouns mixed up (e.g., saying 'you' or 'he/she' for 'I')?", "score_if": "yes"},
+    {"id": 6, "domain": "reciprocal_social_interaction", "text": "Has your child ever used words that he/she seemed to have invented or made up him/herself, or used odd, indirect or metaphorical ways of saying things?", "score_if": "yes"},
+    {"id": 7, "domain": "reciprocal_social_interaction", "text": "Has your child ever said the same thing over and over in exactly the same way, or insisted that you say the same thing?", "score_if": "yes"},
+    {"id": 8, "domain": "reciprocal_social_interaction", "text": "Has your child ever had things that he/she seemed to have to do in a very particular order or in a specific routine, and got upset if this was changed?", "score_if": "yes"},
+    {"id": 9, "domain": "communication", "text": "Has your child's facial expression usually seemed appropriate to the particular situation, as far as you could tell?", "score_if": "no"},
+    {"id": 10, "domain": "reciprocal_social_interaction", "text": "Has your child ever used your hand like a tool or as if it were part of his/her own body (e.g., pointing with your finger, putting your hand on a doorknob to get you to open the door)?", "score_if": "yes"},
+    {"id": 11, "domain": "reciprocal_social_interaction", "text": "Has your child ever had any interests that preoccupy him/her and might seem odd to other people (e.g., traffic lights, drainpipes, timetables)?", "score_if": "yes"},
+    {"id": 12, "domain": "reciprocal_social_interaction", "text": "Has your child ever seemed to be more interested in parts of a toy or an object (e.g., spinning the wheels of a car), rather than using the object as intended?", "score_if": "yes"},
+    {"id": 13, "domain": "communication", "text": "Has your child ever had any special interests that seemed unusual in their intensity but otherwise appropriate for his/her age and peer group?", "score_if": "yes"},
+    {"id": 14, "domain": "reciprocal_social_interaction", "text": "Has your child ever seemed to be unusually interested in the sight, feel, sound, taste, or smell of things or people?", "score_if": "yes"},
+    {"id": 15, "domain": "reciprocal_social_interaction", "text": "Has your child ever had any mannerisms or odd ways of moving his/her hands or fingers, such as flapping or moving his/her fingers in front of his/her eyes?", "score_if": "yes"},
+    {"id": 16, "domain": "reciprocal_social_interaction", "text": "Has your child ever had any complicated movements of his/her whole body, such as spinning or repeatedly bouncing up and down?", "score_if": "yes"},
+    {"id": 17, "domain": "reciprocal_social_interaction", "text": "Has your child ever deliberately hurt him/herself, such as biting his/her arm or banging his/her head?", "score_if": "yes"},
+    {"id": 18, "domain": "communication", "text": "Has your child ever had any objects (other than a soft toy or comfort blanket) that he/she had to carry around?", "score_if": "yes"},
+    {"id": 19, "domain": "reciprocal_social_interaction", "text": "Does your child have any particular friends or a best friend?", "score_if": "no"},
+    {"id": 20, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever talk with you just to be friendly (rather than to get something)?", "score_if": "no"},
+    {"id": 21, "domain": "communication", "text": "When your child was 4-5 years old, did he/she ever spontaneously copy you or other people or what you/they were doing?", "score_if": "no"},
+    {"id": 22, "domain": "communication", "text": "When your child was 4-5 years old, did he/she ever spontaneously point at things around him/her just to show you things (not because he/she wanted them)?", "score_if": "no"},
+    {"id": 23, "domain": "communication", "text": "When your child was 4-5 years old, did he/she ever use gestures, other than pointing or pulling your hand, to let you know what he/she wanted?", "score_if": "no"},
+    {"id": 24, "domain": "communication", "text": "When your child was 4-5 years old, did he/she nod his/her head to indicate 'yes'?", "score_if": "no"},
+    {"id": 25, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she shake his/her head to indicate 'no'?", "score_if": "no"},
+    {"id": 26, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she usually look at you directly in the face when doing things with you or talking with you?", "score_if": "no"},
+    {"id": 27, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she smile back if someone smiled at him/her?", "score_if": "no"},
+    {"id": 28, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever show you things that interested him/her to engage your attention?", "score_if": "no"},
+    {"id": 29, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever offer to share things with you other than food?", "score_if": "no"},
+    {"id": 30, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever seem to want you to join in with his/her enjoyment of something?", "score_if": "no"},
+    {"id": 31, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever try to comfort you if you were sad or hurt?", "score_if": "no"},
+    {"id": 32, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, when he/she wanted something or needed help, did he/she look at you and use gestures with sounds or words to get your attention?", "score_if": "no"},
+    {"id": 33, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she show a normal range of facial expressions?", "score_if": "no"},
+    {"id": 34, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever spontaneously join in and try to copy what you were doing in actions (such as vacuuming, gardening, or fixing things)?", "score_if": "no"},
+    {"id": 35, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever play pretend or make-believe games?", "score_if": "no"},
+    {"id": 36, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she seem interested in other children of approximately the same age?", "score_if": "no"},
+    {"id": 37, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever respond positively when another child approached him/her?", "score_if": "no"},
+    {"id": 38, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, if you came into a room and started talking to him/her without calling his/her name, did he/she usually look up and pay attention to you?", "score_if": "no"},
+    {"id": 39, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she ever play imaginative games with another child in such a way that you could tell that each child understood what the other was pretending?", "score_if": "no"},
+    {"id": 40, "domain": "reciprocal_social_interaction", "text": "When your child was 4-5 years old, did he/she play cooperatively in group games of any kind?", "score_if": "no"}
+  ],
+  "response_options": [
+    {"value": "yes", "text": "Yes"},
+    {"value": "no", "text": "No"}
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "instrument": "phq9",
+  "title": "Patient Health Questionnaire-9 (PHQ-9)",
+  "description": "A validated 9-item depression screening tool. Over the last 2 weeks, how often have you been bothered by any of the following problems?",
+  "scoring": {
+    "scale": "0-3 per item (Not at all=0, Several days=1, More than half the days=2, Nearly every day=3)",
+    "max_score": 27,
+    "severity_levels": [
+      {"range": [0, 4], "label": "minimal", "description": "Minimal depression"},
+      {"range": [5, 9], "label": "mild", "description": "Mild depression"},
+      {"range": [10, 14], "label": "moderate", "description": "Moderate depression"},
+      {"range": [15, 19], "label": "moderately_severe", "description": "Moderately severe depression"},
+      {"range": [20, 27], "label": "severe", "description": "Severe depression"}
+    ],
+    "clinical_threshold": 10,
+    "clinical_note": "A score of 10 or above warrants clinical follow-up. Question 9 (self-harm) should always be evaluated regardless of total score."
+  },
+  "questions": [
+    {
+      "id": 1,
+      "text": "Little interest or pleasure in doing things",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Feeling down, depressed, or hopeless",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Trouble falling or staying asleep, or sleeping too much",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Feeling tired or having little energy",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Poor appetite or overeating",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Feeling bad about yourself — or that you are a failure or have let yourself or your family down",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 7,
+      "text": "Trouble concentrating on things, such as reading the newspaper or watching television",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 8,
+      "text": "Moving or speaking so slowly that other people could have noticed? Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 9,
+      "text": "Thoughts that you would be better off dead or of hurting yourself in some way",
+      "clinical_flag": "suicidal_ideation",
+      "flag_threshold": 1,
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    }
+  ]
+}

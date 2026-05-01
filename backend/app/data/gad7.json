@@ -1,0 +1,89 @@
+{
+  "instrument": "gad7",
+  "title": "Generalized Anxiety Disorder 7-item (GAD-7)",
+  "description": "A validated 7-item anxiety screening tool. Over the last 2 weeks, how often have you been bothered by the following problems?",
+  "scoring": {
+    "scale": "0-3 per item (Not at all=0, Several days=1, More than half the days=2, Nearly every day=3)",
+    "max_score": 21,
+    "severity_levels": [
+      {"range": [0, 4], "label": "minimal", "description": "Minimal anxiety"},
+      {"range": [5, 9], "label": "mild", "description": "Mild anxiety"},
+      {"range": [10, 14], "label": "moderate", "description": "Moderate anxiety"},
+      {"range": [15, 21], "label": "severe", "description": "Severe anxiety"}
+    ],
+    "clinical_threshold": 10,
+    "clinical_note": "A score of 10 or above suggests clinically significant anxiety warranting further evaluation."
+  },
+  "questions": [
+    {
+      "id": 1,
+      "text": "Feeling nervous, anxious, or on edge",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Not being able to stop or control worrying",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Worrying too much about different things",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Trouble relaxing",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Being so restless that it is hard to sit still",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Becoming easily annoyed or irritable",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    },
+    {
+      "id": 7,
+      "text": "Feeling afraid, as if something awful might happen",
+      "options": [
+        {"value": 0, "text": "Not at all"},
+        {"value": 1, "text": "Several days"},
+        {"value": 2, "text": "More than half the days"},
+        {"value": 3, "text": "Nearly every day"}
+      ]
+    }
+  ]
+}

@@ -42,7 +42,7 @@ const validateRegister = (values) => {
 
 function Register() {
   const navigate = useNavigate()
-  const { register, login } = useAuth()
+  const { register } = useAuth()
   const [serverError, setServerError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isProfessional, setIsProfessional] = useState(false)
@@ -69,7 +69,7 @@ function Register() {
     setIsLoading(true)
     setServerError('')
     try {
-      await register({
+      const result = await register({
         first_name: formValues.first_name,
         last_name: formValues.last_name,
         email: formValues.email,
@@ -80,14 +80,8 @@ function Register() {
         specialty: formValues.specialty || null,
         institution: formValues.institution || null,
       })
-      const userData = await login(formValues.email, formValues.password)
-      if (userData.role === 'admin') {
-        navigate('/admin')
-      } else if (userData.role === 'professional') {
-        navigate('/professional')
-      } else {
-        navigate('/dashboard')
-      }
+      // Redirect to email verification page
+      navigate(`/verify-email?email=${encodeURIComponent(result.email || formValues.email)}`)
     } catch (error) {
       setServerError(error.response?.data?.detail || 'Registration failed. Please try again.')
     } finally {

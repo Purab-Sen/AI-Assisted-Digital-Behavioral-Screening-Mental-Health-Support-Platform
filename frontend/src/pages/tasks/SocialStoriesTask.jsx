@@ -5,6 +5,8 @@
  * Maintains 2-5 descriptive/perspective sentences per directive sentence
  * Key metric: Comprehension assessment score
  * Difficulty: concrete routines → perspective focus → interactive resolution
+ * 
+ * 8 short, 6 medium, 4 long stories (18 total) for non-repetition.
  */
 import { useState, useEffect, useCallback } from 'react';
 
@@ -72,6 +74,66 @@ const STORIES = {
         { q: "When is it important to wash hands?", options: ["Only when they look dirty", "Before eating and after the bathroom", "Only at night"], correct: 1 },
       ]
     },
+    {
+      title: "Sharing Toys",
+      sentences: [
+        { type: "descriptive", text: "When I play with others, there are sometimes toys that everyone wants." },
+        { type: "perspective", text: "Other children also get excited about fun toys." },
+        { type: "descriptive", text: "Sharing means taking turns or letting someone else use something for a while." },
+        { type: "affirmative", text: "It can feel hard to share, but it helps me keep my friendships." },
+        { type: "directive", text: "I will try to share or take turns with toys when I play with others." },
+        { type: "perspective", text: "Friends feel happy and included when I share with them." },
+      ],
+      questions: [
+        { q: "What does sharing mean?", options: ["Giving all your things away", "Taking turns or letting someone use something for a while", "Only playing alone"], correct: 1 },
+        { q: "How do friends feel when you share?", options: ["Angry", "Happy and included", "Worried"], correct: 1 },
+      ]
+    },
+    {
+      title: "Asking for Help",
+      sentences: [
+        { type: "descriptive", text: "Sometimes I find something too difficult to do on my own." },
+        { type: "descriptive", text: "This could be a hard math problem, a jar I can't open, or a word I can't read." },
+        { type: "perspective", text: "Adults and friends are usually happy to help when I ask." },
+        { type: "affirmative", text: "Asking for help doesn't mean I can't do things — it means I'm smart enough to know when I need support." },
+        { type: "directive", text: "I will try to say 'Can you help me, please?' when I'm stuck." },
+        { type: "perspective", text: "People feel trusted when I ask for their help." },
+      ],
+      questions: [
+        { q: "What does asking for help mean about you?", options: ["You can't do anything right", "You're smart enough to know when you need support", "You're bothering people"], correct: 1 },
+        { q: "How do people feel when you ask for help?", options: ["Annoyed", "Trusted", "Confused"], correct: 1 },
+      ]
+    },
+    {
+      title: "Saying Sorry",
+      sentences: [
+        { type: "descriptive", text: "Sometimes I accidentally hurt someone's feelings or break something." },
+        { type: "perspective", text: "The other person might feel sad, surprised, or upset." },
+        { type: "descriptive", text: "Saying 'I'm sorry' lets the other person know I understand they are hurt." },
+        { type: "affirmative", text: "Everyone makes mistakes — what matters is what I do after." },
+        { type: "directive", text: "I will try to say 'I'm sorry' when I accidentally hurt someone." },
+        { type: "perspective", text: "People feel better when they hear a sincere apology." },
+      ],
+      questions: [
+        { q: "Why do we say 'I'm sorry'?", options: ["Because we have to", "To show we understand the other person is hurt", "To avoid punishment"], correct: 1 },
+        { q: "Does everyone make mistakes?", options: ["No, only some people", "Yes, everyone does", "Only children"], correct: 1 },
+      ]
+    },
+    {
+      title: "Following Instructions",
+      sentences: [
+        { type: "descriptive", text: "Teachers and parents give instructions to help me know what to do." },
+        { type: "descriptive", text: "Instructions might have more than one step, like 'put away your book and sit down.'" },
+        { type: "perspective", text: "When I follow instructions, it helps things run smoothly for everyone." },
+        { type: "affirmative", text: "It's okay to ask someone to repeat the instructions if I didn't catch them." },
+        { type: "directive", text: "I will listen carefully and try to follow the steps in order." },
+        { type: "perspective", text: "Teachers feel respected when students listen to instructions." },
+      ],
+      questions: [
+        { q: "What can you do if you didn't hear the instructions?", options: ["Guess what to do", "Ask the person to repeat them", "Do nothing"], correct: 1 },
+        { q: "Why do people give instructions?", options: ["To boss people around", "To help me know what to do", "For no reason"], correct: 1 },
+      ]
+    },
   ],
   medium: [
     {
@@ -113,6 +175,81 @@ const STORIES = {
         { q: "Is it normal to feel disappointed when you lose?", options: ["No, you should never care", "Yes, everyone feels that way", "Only small kids feel disappointed"], correct: 1 },
         { q: "What is a good thing to say after a game?", options: ["That game was stupid", "Good game!", "I would have won if..."], correct: 1 },
         { q: "Why do people enjoy playing with a good sport?", options: ["Because good sports always lose", "It makes the game more fun for everyone", "They don't really"], correct: 1 },
+      ]
+    },
+    {
+      title: "Understanding Personal Space",
+      sentences: [
+        { type: "descriptive", text: "Personal space is the area right around someone's body." },
+        { type: "descriptive", text: "Most people feel comfortable when others stay about an arm's length away." },
+        { type: "perspective", text: "If I stand too close, someone might feel crowded or uncomfortable." },
+        { type: "descriptive", text: "Different situations have different space rules — friends might be closer than strangers." },
+        { type: "perspective", text: "Noticing if someone leans away or steps back is a clue I'm too close." },
+        { type: "affirmative", text: "It's okay to need reminders about space — many people learn this gradually." },
+        { type: "descriptive", text: "In a line or crowd, less space is expected and that's okay." },
+        { type: "directive", text: "I will try to keep about an arm's length from people in conversations." },
+        { type: "perspective", text: "People feel more relaxed and happy to talk when I give them comfortable space." },
+      ],
+      questions: [
+        { q: "How much space do most people prefer?", options: ["As close as possible", "About an arm's length away", "The whole room"], correct: 1 },
+        { q: "What's a clue that you're too close?", options: ["They smile bigger", "They lean away or step back", "They talk louder"], correct: 1 },
+        { q: "Is personal space the same in all situations?", options: ["Yes, always the same", "No, it depends on the relationship and situation", "Only adults have personal space"], correct: 1 },
+      ]
+    },
+    {
+      title: "Taking Turns in Conversation",
+      sentences: [
+        { type: "descriptive", text: "A conversation is like a ball being passed back and forth." },
+        { type: "descriptive", text: "One person talks, and then the other person gets a turn." },
+        { type: "perspective", text: "When I talk for a very long time without pausing, the other person might feel left out." },
+        { type: "descriptive", text: "I can watch for clues that someone wants to speak — like opening their mouth or raising a finger." },
+        { type: "affirmative", text: "It's normal to get excited and want to share a lot. I can practice pausing." },
+        { type: "perspective", text: "Other people have interesting things to say too." },
+        { type: "descriptive", text: "Asking a question like 'What do you think?' passes the ball to the other person." },
+        { type: "directive", text: "I will try to pause after a few sentences and let the other person speak." },
+        { type: "perspective", text: "People enjoy conversations more when both sides get to share." },
+      ],
+      questions: [
+        { q: "What is a conversation compared to?", options: ["A race to finish first", "A ball being passed back and forth", "A TV show"], correct: 1 },
+        { q: "What can you do to give someone else a turn?", options: ["Talk louder", "Ask them 'What do you think?'", "Walk away"], correct: 1 },
+        { q: "How might someone feel if you talk without pausing?", options: ["Included", "Left out", "Excited"], correct: 1 },
+      ]
+    },
+    {
+      title: "Handling Mistakes",
+      sentences: [
+        { type: "descriptive", text: "Everyone makes mistakes — adults, children, and even experts." },
+        { type: "perspective", text: "When I make a mistake, I might feel embarrassed or frustrated." },
+        { type: "affirmative", text: "These feelings are normal, and they don't last forever." },
+        { type: "descriptive", text: "A mistake is actually a chance to learn something new." },
+        { type: "perspective", text: "Other people don't usually think badly of me for making a mistake." },
+        { type: "descriptive", text: "I can say 'Oops, let me try again' and move on." },
+        { type: "directive", text: "I will try to be kind to myself when I make a mistake." },
+        { type: "perspective", text: "When I stay calm after mistakes, others respect my attitude." },
+      ],
+      questions: [
+        { q: "What can a mistake help you do?", options: ["Nothing useful", "Learn something new", "Get punished"], correct: 1 },
+        { q: "Do other people think badly of you for a mistake?", options: ["Yes, always", "Usually not", "They never notice"], correct: 1 },
+        { q: "What can you say after a mistake?", options: ["I'm terrible at everything", "Oops, let me try again", "I quit"], correct: 1 },
+      ]
+    },
+    {
+      title: "Being a Good Listener",
+      sentences: [
+        { type: "descriptive", text: "Listening means paying attention when someone else is speaking." },
+        { type: "descriptive", text: "Good listeners face the person, make eye contact, and think about what's being said." },
+        { type: "perspective", text: "When someone listens to me, I feel important and cared about." },
+        { type: "descriptive", text: "Sometimes my mind wanders, and that's okay — I can gently bring my attention back." },
+        { type: "affirmative", text: "Being a good listener takes practice, and it's okay if it's hard sometimes." },
+        { type: "perspective", text: "The speaker can tell when I'm paying attention by my face and body language." },
+        { type: "descriptive", text: "Nodding, saying 'uh-huh,' and asking questions shows I'm listening." },
+        { type: "directive", text: "I will try to look at the speaker and think about their words." },
+        { type: "perspective", text: "Good listeners make people feel heard and valued." },
+      ],
+      questions: [
+        { q: "How can you show someone you're listening?", options: ["Look at your phone", "Nod and ask questions", "Walk away"], correct: 1 },
+        { q: "Is it okay if your mind wanders sometimes?", options: ["No, that means you're a bad listener", "Yes, you can gently bring your attention back", "You should never listen anyway"], correct: 1 },
+        { q: "How do people feel when they're listened to?", options: ["Unimportant", "Important and cared about", "Bored"], correct: 1 },
       ]
     },
   ],
@@ -180,6 +317,68 @@ const STORIES = {
         }
       ]
     },
+    {
+      title: "Understanding Different Feelings",
+      sentences: [
+        { type: "descriptive", text: "People show their feelings in different ways — some are loud, some are quiet." },
+        { type: "descriptive", text: "A person's face, voice, and body can give clues about how they feel." },
+        { type: "perspective", text: "Someone with crossed arms and a frown might be feeling frustrated or upset." },
+        { type: "perspective", text: "Someone bouncing and smiling is probably feeling happy or excited." },
+        { type: "descriptive", text: "Sometimes people feel more than one thing at once — like excited AND nervous." },
+        { type: "affirmative", text: "All feelings are okay. There are no 'bad' feelings, only difficult ones." },
+        { type: "perspective", text: "When I notice how someone else feels, I can respond in a way that helps." },
+        { type: "descriptive", text: "If a friend looks sad, I might ask 'Are you okay?' If they look excited, I might say 'That's awesome!'" },
+        { type: "descriptive", text: "Reading emotions gets easier with practice." },
+        { type: "directive", text: "I will try to notice how people around me are feeling by watching their face and body." },
+        { type: "perspective", text: "People feel understood and cared about when I notice their emotions." },
+      ],
+      questions: [
+        { q: "How can you tell how someone feels?", options: ["You can't — feelings are invisible", "Watch their face, voice, and body language", "Just ask every person you see"], correct: 1 },
+        { q: "Can you feel more than one emotion at once?", options: ["No, only one at a time", "Yes, like excited AND nervous", "Only adults can"], correct: 1 },
+        { q: "What might you do if a friend looks sad?", options: ["Ignore them", "Ask 'Are you okay?'", "Tell them to cheer up"], correct: 1 },
+      ],
+      interactiveChoices: [
+        {
+          scenario: "Your friend comes to school looking tired with their head down. They barely say hi. What do you do?",
+          options: [
+            { text: "Gently ask 'Hey, are you alright today?'", outcome: "positive", feedback: "Checking in shows you noticed and care about how they feel." },
+            { text: "Ignore them — they'll talk if they want to", outcome: "negative", feedback: "They might need a friend right now. A gentle check-in can help." },
+            { text: "Tell them to stop being grumpy", outcome: "negative", feedback: "This might make them feel worse. They can't always control how they feel." },
+          ]
+        }
+      ]
+    },
+    {
+      title: "Working Together in a Team",
+      sentences: [
+        { type: "descriptive", text: "In a team, several people work together toward a shared goal." },
+        { type: "descriptive", text: "Each person might have a different job or skill to contribute." },
+        { type: "perspective", text: "Not everyone works the same way — some people are fast, some are careful, some are creative." },
+        { type: "affirmative", text: "Different strengths make the team stronger." },
+        { type: "perspective", text: "My teammates might have ideas I haven't thought of." },
+        { type: "descriptive", text: "Good teamwork involves listening to each other, dividing tasks fairly, and helping when someone is stuck." },
+        { type: "perspective", text: "If I do all the work myself, my teammates might feel unimportant or left out." },
+        { type: "descriptive", text: "Saying 'What do you think?' or 'Would you like to do this part?' includes everyone." },
+        { type: "descriptive", text: "Disagreements happen in teams — the key is to discuss and compromise, not argue." },
+        { type: "directive", text: "I will try to include all team members and value different ideas." },
+        { type: "perspective", text: "Teams that work well together feel proud and enjoy the experience." },
+      ],
+      questions: [
+        { q: "Why are different strengths good for a team?", options: ["They cause arguments", "They make the team stronger and more creative", "Only one type of person should be on a team"], correct: 1 },
+        { q: "What might happen if you do all the work yourself?", options: ["The team will love you", "Teammates might feel unimportant or left out", "You'll finish faster"], correct: 1 },
+        { q: "How should team disagreements be handled?", options: ["By arguing loudly", "By discussing and compromising", "By letting one person always decide"], correct: 1 },
+      ],
+      interactiveChoices: [
+        {
+          scenario: "Your group is making a poster. You have a great idea, but your teammate suggests something different. What do you do?",
+          options: [
+            { text: "Listen to their idea and combine the best parts of both", outcome: "positive", feedback: "Combining ideas often creates something better than either one alone!" },
+            { text: "Insist your idea is better and ignore theirs", outcome: "negative", feedback: "This might make your teammate feel unvalued. Their idea might have great parts too." },
+            { text: "Let them do whatever they want even if you disagree", outcome: "negative", feedback: "Your input matters too! It's better to share your thoughts and find a compromise." },
+          ]
+        }
+      ]
+    },
   ]
 };
 
@@ -201,7 +400,24 @@ function SocialStoriesTask({ config, onComplete }) {
   useEffect(() => {
     const pool = STORIES[storyLength] || STORIES.short;
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    setStories(shuffled.slice(0, Math.min(numStories, shuffled.length)));
+    const selected = shuffled.slice(0, Math.min(numStories, shuffled.length));
+    // Randomize question answer positions to eliminate response bias
+    const withShuffledAnswers = selected.map(story => ({
+      ...story,
+      questions: story.questions.map(q => {
+        const indices = q.options.map((_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        return {
+          ...q,
+          options: indices.map(i => q.options[i]),
+          correct: indices.indexOf(q.correct),
+        };
+      }),
+    }));
+    setStories(withShuffledAnswers);
   }, []);
 
   // Completion check
@@ -216,7 +432,6 @@ function SocialStoriesTask({ config, onComplete }) {
 
       onComplete([
         { metric_name: 'comprehension_score', metric_value: Math.round(comprehensionScore * 100) / 100 },
-        { metric_name: 'perspective_accuracy', metric_value: Math.round(comprehensionScore * 100) / 100 },
         { metric_name: 'avg_response_time', metric_value: Math.round(avgRT) },
       ]);
     }

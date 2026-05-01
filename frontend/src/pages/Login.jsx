@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { authService } from '../services/authService'
 import { useForm } from '../hooks/useForm'
 import './Auth.css'
 
@@ -22,9 +23,16 @@ const validateLogin = (values) => {
 
 function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const justVerified = searchParams.get('verified') === '1'
+  const justReset = searchParams.get('reset') === '1'
   const { login } = useAuth()
   const [serverError, setServerError] = useState('')
+  const [isEmailUnverified, setIsEmailUnverified] = useState(false)
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
 
   const { values, errors, touched, handleChange, handleBlur, handleSubmit } = useForm(
     { email: '', password: '' },
@@ -35,10 +43,11 @@ function Login() {
   const onSubmit = async (formValues) => {
     setIsLoading(true)
     setServerError('')
+    setIsEmailUnverified(false)
+    setResendMessage('')
     
     try {
       const userData = await login(formValues.email, formValues.password)
-      // Role-based redirect
       if (userData.role === 'admin') {
         navigate('/admin')
       } else if (userData.role === 'professional') {
@@ -47,9 +56,33 @@ function Login() {
         navigate('/dashboard')
       }
     } catch (error) {
-      setServerError(error.response?.data?.detail || 'Login failed. Please try again.')
+      const detail = error.response?.data?.detail || ''
+      const isUnverified =
+        error.response?.status === 403 &&
+        detail.toLowerCase().includes('verify your email')
+
+      if (isUnverified) {
+        setIsEmailUnverified(true)
+        setUnverifiedEmail(formValues.email)
+      } else {
+        setServerError(detail || 'Login failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (!unverifiedEmail || isResending) return
+    setIsResending(true)
+    setResendMessage('')
+    try {
+      await authService.resendOtp(unverifiedEmail)
+      navigate(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`)
+    } catch {
+      setResendMessage('Failed to send a new code. Please try again.')
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -91,7 +124,39 @@ function Login() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+            {justVerified && !serverError && !isEmailUnverified && (
+              <div className="server-error" style={{ background: '#F0FDF4', borderColor: '#22C55E', color: '#166534' }}>
+                ✓ Email verified! You can now sign in.
+              </div>
+            )}
+
+            {justReset && !serverError && !isEmailUnverified && (
+              <div className="server-error" style={{ background: '#F0FDF4', borderColor: '#22C55E', color: '#166534' }}>
+                ✓ Password reset! Sign in with your new password.
+              </div>
+            )}
+
             {serverError && <div className="server-error">⚠ {serverError}</div>}
+
+            {isEmailUnverified && (
+              <div className="server-error" style={{ background: '#FFF7ED', borderColor: '#F59E0B', color: '#92400E' }}>
+                <div>
+                  <strong>Email not verified.</strong> Please verify your email before logging in.
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  {resendMessage && <span style={{ display: 'block', marginBottom: 6 }}>{resendMessage}</span>}
+                  <button
+                    type="button"
+                    className="link-btn"
+                    style={{ color: '#B45309', fontWeight: 700 }}
+                    onClick={handleResendOtp}
+                    disabled={isResending}
+                  >
+                    {isResending ? 'Sending…' : 'Send verification code →'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
@@ -128,6 +193,10 @@ function Login() {
               {touched.password && errors.password && (
                 <span className="error-message">{errors.password}</span>
               )}
+            </div>
+
+            <div style={{ textAlign: 'right', marginTop: '-4px', marginBottom: '4px' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: 'var(--primary, #4F46E5)' }}>Forgot password?</Link>
             </div>
 
             <button type="submit" className="btn-auth" disabled={isLoading}>

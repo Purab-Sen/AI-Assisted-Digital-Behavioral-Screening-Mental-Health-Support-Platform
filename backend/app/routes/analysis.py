@@ -8,13 +8,18 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, desc
 
 from app.database import get_db
 from app.models.user import User
 from app.models.journal import JournalEntry, JournalAnalysis
 from app.models.screening import ScreeningSession, RiskLevel
 from app.models.task import Task, TaskSession, TaskResult
+from app.models.additional_screening import AdditionalScreening
+from app.models.comorbidity_screening import ComorbidityScreening
+from app.models.behavioral_observation import BehavioralObservation
+from app.models.referral import Referral
+from app.services.normative_service import compute_all_normative_scores, compute_composite_pillar_score
 from app.utils.dependencies import get_current_active_user
 from app.utils.crypto import decrypt_text
 
@@ -356,6 +361,135 @@ async def get_analysis_summary(
 
     task_insight = task_clinical_insight(pillar_analytics)
 
+    # ── Normative Score Mapping for Tasks ──────────────────────────────────
+    age_years = None
+    if current_user.date_of_birth:
+        from datetime import date as date_cls
+        today = date_cls.today()
+        age_years = today.year - current_user.date_of_birth.year - (
+            (today.month, today.day) < (current_user.date_of_birth.month, current_user.date_of_birth.day)
+        )
+
+    normative_results = {}
+    pillar_composites = {}
+    if task_sessions:
+        # Latest session per category
+        latest_by_cat = {}
+        for ts in reversed(task_sessions):
+            cat = ts.task.category or "unknown"
+            latest_by_cat[cat] = ts
+
+        pillar_metrics_map = defaultdict(dict)
+        for cat, ts in latest_by_cat.items():
+            metrics = {r.metric_name: r.metric_value for r in ts.results}
+            normed = compute_all_normative_scores(cat, metrics, age_years)
+            if normed:
+                normative_results[cat] = {
+                    "task_name": ts.task.name,
+                    "pillar": ts.task.pillar,
+                    "difficulty_level": ts.difficulty_level,
+                    "metrics": normed,
+                }
+                pillar = ts.task.pillar or "unknown"
+                pillar_metrics_map[pillar][cat] = metrics
+
+        for pillar_key, task_metrics in pillar_metrics_map.items():
+            composite = compute_composite_pillar_score(task_metrics, age_years)
+            if composite:
+                pillar_composites[pillar_key] = composite
+
+    # ── Additional ASD Screenings ──────────────────────────────────────────
+    additional_screenings = (
+        db.query(AdditionalScreening)
+        .filter(AdditionalScreening.user_id == current_user.id, AdditionalScreening.completed_at.isnot(None))
+        .order_by(desc(AdditionalScreening.completed_at))
+        .all()
+    )
+    additional_screening_data = [
+        {
+            "id": a.id,
+            "instrument": a.instrument,
+            "total_score": a.total_score,
+            "max_score": a.max_score,
+            "domain_scores": a.domain_scores,
+            "severity": a.severity,
+            "interpretation": decrypt_text(a.interpretation) if a.interpretation else None,
+            "completed_at": a.completed_at.isoformat() if a.completed_at else None,
+        }
+        for a in additional_screenings
+    ]
+
+    # ── Comorbidity Screenings ─────────────────────────────────────────────
+    comorbidity_screenings = (
+        db.query(ComorbidityScreening)
+        .filter(ComorbidityScreening.user_id == current_user.id, ComorbidityScreening.completed_at.isnot(None))
+        .order_by(desc(ComorbidityScreening.completed_at))
+        .all()
+    )
+    import json as _json
+    comorbidity_data = []
+    for c in comorbidity_screenings:
+        flags = None
+        if c.clinical_flags:
+            try:
+                flags = _json.loads(decrypt_text(c.clinical_flags) or "{}")
+            except Exception:
+                flags = {}
+        comorbidity_data.append({
+            "id": c.id,
+            "instrument": c.instrument,
+            "total_score": c.total_score,
+            "max_score": c.max_score,
+            "severity": c.severity,
+            "clinical_flags": flags,
+            "interpretation": decrypt_text(c.interpretation) if c.interpretation else None,
+            "completed_at": c.completed_at.isoformat() if c.completed_at else None,
+        })
+
+    # ── Behavioral Observations Summary ────────────────────────────────────
+    observations = (
+        db.query(BehavioralObservation)
+        .filter(BehavioralObservation.user_id == current_user.id)
+        .order_by(desc(BehavioralObservation.created_at))
+        .limit(50)
+        .all()
+    )
+    obs_summary = {}
+    if observations:
+        cat_counts = {}
+        for o in observations:
+            cat_counts[o.category] = cat_counts.get(o.category, 0) + 1
+        top_behaviors = {}
+        for o in observations:
+            key = f"{o.category}:{o.behavior_type}"
+            top_behaviors[key] = top_behaviors.get(key, 0) + 1
+        top_5 = sorted(top_behaviors.items(), key=lambda x: x[1], reverse=True)[:5]
+        obs_summary = {
+            "total": len(observations),
+            "category_counts": cat_counts,
+            "top_patterns": [{"category": k.split(":")[0], "behavior": k.split(":")[1], "count": v} for k, v in top_5],
+        }
+
+    # ── Active Referrals ───────────────────────────────────────────────────
+    referrals = (
+        db.query(Referral)
+        .filter(Referral.user_id == current_user.id)
+        .filter(Referral.status.in_(["recommended", "acknowledged", "scheduled"]))
+        .order_by(desc(Referral.created_at))
+        .all()
+    )
+    referral_data = [
+        {
+            "id": r.id,
+            "referral_type": r.referral_type,
+            "urgency": r.urgency,
+            "status": r.status,
+            "reason": decrypt_text(r.reason) if r.reason else None,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in referrals
+    ]
+
     return {
         "journal": {
             "entry_count_30d": len(journal_entries),
@@ -383,6 +517,12 @@ async def get_analysis_summary(
             "total_completed": len(task_sessions),
             "pillar_analytics": pillar_analytics,
             "task_insight": task_insight,
+            "normative_scores": normative_results,
+            "pillar_composites": pillar_composites,
         },
+        "additional_screenings": additional_screening_data,
+        "comorbidity": comorbidity_data,
+        "behavioral_observations": obs_summary,
+        "referrals": referral_data,
         "insight": insight,
     }

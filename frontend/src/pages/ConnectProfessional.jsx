@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
-import Modal from '../components/Modal'
 import './ConnectProfessional.css'
 
 function ConnectProfessional() {
@@ -13,7 +12,6 @@ function ConnectProfessional() {
   const [selected, setSelected] = useState(null)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
   const navigate = useNavigate()
 
   const fetchProfessionals = async (q = '') => {
@@ -45,24 +43,12 @@ function ConnectProfessional() {
     setSending(true)
     try {
       await api.post('/users/share', { professional_id: selected.user_id, message })
-      setModal({
-        open: true,
-        title: 'Success',
-        message: 'Request sent — professional will be notified',
-        onClose: () => {
-          setModal({ ...modal, open: false })
-          setSelected(null)
-          fetchProfessionals()
-          navigate('/dashboard')
-        }
-      })
+      alert('Request sent — professional will be notified')
+      setSelected(null)
+      fetchProfessionals()
+      navigate('/dashboard')
     } catch (err) {
-      setModal({
-        open: true,
-        title: 'Error',
-        message: err?.response?.data?.detail || 'Failed to send request',
-        onClose: () => setModal({ ...modal, open: false })
-      })
+      alert(err?.response?.data?.detail || 'Failed to send request')
     } finally {
       setSending(false)
     }
@@ -112,7 +98,6 @@ function ConnectProfessional() {
           </div>
         )}
       </div>
-      <Modal {...modal} />
     </div>
   )
 }

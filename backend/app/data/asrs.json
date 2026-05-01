@@ -1,0 +1,98 @@
+{
+  "instrument": "asrs",
+  "title": "Adult ADHD Self-Report Scale (ASRS-v1.1) Screener",
+  "description": "A 6-item ADHD screening tool developed by the World Health Organization. Please answer each question based on the last 6 months.",
+  "scoring": {
+    "scale": "0-4 per item (Never=0, Rarely=1, Sometimes=2, Often=3, Very Often=4)",
+    "max_score": 24,
+    "severity_levels": [
+      {"range": [0, 9], "label": "unlikely", "description": "ADHD unlikely"},
+      {"range": [10, 13], "label": "possible", "description": "ADHD possible — further evaluation recommended"},
+      {"range": [14, 24], "label": "likely", "description": "ADHD highly likely — clinical evaluation strongly recommended"}
+    ],
+    "clinical_threshold": 14,
+    "clinical_note": "Items 1-3 assess inattention, items 4-6 assess hyperactivity/impulsivity. 4+ on any shaded item or total ≥14 suggests clinical ADHD.",
+    "threshold_items": [1, 2, 3, 4],
+    "threshold_value": 3
+  },
+  "questions": [
+    {
+      "id": 1,
+      "domain": "inattention",
+      "text": "How often do you have trouble wrapping up the final details of a project, once the challenging parts have been done?",
+      "threshold_shaded": true,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    },
+    {
+      "id": 2,
+      "domain": "inattention",
+      "text": "How often do you have difficulty getting things in order when you have to do a task that requires organization?",
+      "threshold_shaded": true,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    },
+    {
+      "id": 3,
+      "domain": "inattention",
+      "text": "How often do you have problems remembering appointments or obligations?",
+      "threshold_shaded": true,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    },
+    {
+      "id": 4,
+      "domain": "hyperactivity",
+      "text": "When you have a task that requires a lot of thought, how often do you avoid or delay getting started?",
+      "threshold_shaded": true,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    },
+    {
+      "id": 5,
+      "domain": "hyperactivity",
+      "text": "How often do you fidget or squirm with your hands or feet when you have to sit down for a long time?",
+      "threshold_shaded": false,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    },
+    {
+      "id": 6,
+      "domain": "hyperactivity",
+      "text": "How often do you feel overly active and compelled to do things, like you were driven by a motor?",
+      "threshold_shaded": false,
+      "options": [
+        {"value": 0, "text": "Never"},
+        {"value": 1, "text": "Rarely"},
+        {"value": 2, "text": "Sometimes"},
+        {"value": 3, "text": "Often"},
+        {"value": 4, "text": "Very Often"}
+      ]
+    }
+  ]
+}

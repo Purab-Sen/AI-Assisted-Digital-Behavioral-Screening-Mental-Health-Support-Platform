@@ -3,7 +3,6 @@ import api from '../../services/api'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import NavBar from '../../components/NavBar'
-import Modal from '../../components/Modal'
 import './Consultations.css'
 import { formatDateTimeIST } from '../../utils/formatDate'
 
@@ -12,7 +11,6 @@ function Consultations() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedIds, setExpandedIds] = useState(new Set())
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -37,7 +35,7 @@ function Consultations() {
       fetchRequests()
     } catch (err) {
       console.error(err)
-      setModal({ open: true, title: 'Error', message: 'Failed to update request', onClose: () => setModal({ ...modal, open: false }) })
+      alert('Failed to update request')
     }
   }
 
@@ -140,7 +138,6 @@ function Consultations() {
           </div>
         )}
       </div>
-      <Modal {...modal} />
     </div>
   )
 }

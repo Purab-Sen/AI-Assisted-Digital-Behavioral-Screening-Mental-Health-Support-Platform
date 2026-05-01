@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from pydantic import BaseModel, Field
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.recommendation import Resource
 from app.models.professional import ConsultationRequest
 from app.utils.dependencies import get_current_active_user, get_professional_user
@@ -27,6 +27,7 @@ class ResourceResponse(BaseModel):
     type: str
     content_or_url: Optional[str] = None
     target_risk_level: Optional[str] = None
+    professional_only: int = 0
     uploaded_by: Optional[int] = None
     patient_id: Optional[int] = None
 
@@ -54,12 +55,24 @@ async def get_resources(
 ):
     """
     Get resources accessible to the current user:
-    - Global resources (patient_id = null)
-    - Resources specifically assigned to this user
+    - Regular users: public global resources (professional_only=0) + resources assigned to them
+    - Professionals/Admins: ALL global resources (their library to recommend from) + patient-specific ones
     """
-    resources = db.query(Resource).filter(
-        or_(Resource.patient_id == None, Resource.patient_id == current_user.id)
-    ).order_by(Resource.id.desc()).all()
+    if current_user.role in (UserRole.PROFESSIONAL, UserRole.ADMIN):
+        # Professionals see everything (their recommendation library)
+        resources = db.query(Resource).filter(
+            or_(Resource.patient_id == None, Resource.patient_id == current_user.id)
+        ).order_by(Resource.id.desc()).all()
+    else:
+        # Regular users only see public resources + ones specifically assigned to them
+        resources = db.query(Resource).filter(
+            or_(
+                # Public global resources
+                (Resource.patient_id == None) & (Resource.professional_only == 0),
+                # Resources specifically recommended/assigned to this user
+                Resource.patient_id == current_user.id,
+            )
+        ).order_by(Resource.id.desc()).all()
     return resources
 
 

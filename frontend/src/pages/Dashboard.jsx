@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import api from '../services/api'
+import { formatDateTimeIST } from '../utils/formatDate'
 import './Dashboard.css'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -159,6 +160,32 @@ function Dashboard() {
               <Link to="/connect-professional" className="btn btn-primary">Find a Professional</Link>
             </div>
 
+            {/* ── Clinical feature cards ── */}
+            <div className="dashboard-card">
+              <div className="card-icon-wrapper"><span className="card-icon">🧩</span></div>
+              <h3>Additional ASD Screening</h3>
+              <p>Take supplementary ASD instruments (RAADS-R, CAST, SCQ, SRS-2) for deeper clinical evidence.</p>
+              <Link to="/additional-screening" className="btn btn-primary">Start Screening</Link>
+            </div>
+            <div className="dashboard-card">
+              <div className="card-icon-wrapper"><span className="card-icon">🩺</span></div>
+              <h3>Comorbidity Screening</h3>
+              <p>Screen for co-occurring conditions: depression (PHQ-9), anxiety (GAD-7), and ADHD (ASRS).</p>
+              <Link to="/comorbidity-screening" className="btn btn-primary">Start Screening</Link>
+            </div>
+            <div className="dashboard-card">
+              <div className="card-icon-wrapper"><span className="card-icon">📝</span></div>
+              <h3>Behavioral Log</h3>
+              <p>Record structured behavioral observations using the ABC framework to identify patterns.</p>
+              <Link to="/behavioral-log" className="btn btn-primary">Log Behavior</Link>
+            </div>
+            <div className="dashboard-card">
+              <div className="card-icon-wrapper"><span className="card-icon">🔗</span></div>
+              <h3>Referrals & Report</h3>
+              <p>View AI-generated referral suggestions and download your comprehensive clinical PDF report.</p>
+              <Link to="/referrals" className="btn btn-primary">View Referrals</Link>
+            </div>
+
             {/* ── AI Recommendations card ── */}
             <div className="dashboard-card dashboard-card-recs">
               <div className="card-icon-wrapper recs-icon-wrapper"><span className="card-icon">🤖</span></div>
@@ -224,10 +251,7 @@ function Dashboard() {
                         <div>
                           <div className="note-modal-author">{n.professional_name ?? 'Professional'}</div>
                           <div className="note-modal-date">
-                            {new Date(n.created_at).toLocaleString('en-GB', {
-                              day: 'numeric', month: 'short', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
-                            })}
+                            {formatDateTimeIST(n.created_at)}
                           </div>
                         </div>
                       </div>

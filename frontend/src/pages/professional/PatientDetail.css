@@ -93,6 +93,37 @@
   .global-resource-search { max-width: 100%; width: 100%; }
 }
 
+/* Responsive section header helpers to avoid cramped or vertically-wrapped headings on small screens */
+.section-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+.section-card-header h2 {
+	margin: 0;
+	min-width: 0;
+	flex: 1 1 auto;
+	white-space: normal;
+	word-break: break-word;
+}
+.section-card-header .section-card-actions,
+.section-card-header .actions,
+.section-card-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+	.section-card-header h2 { font-size: 16px; }
+	.section-card-header { align-items: flex-start; }
+	.section-card-actions { width: 100%; justify-content: flex-start; }
+	.section-card-actions .btn { width: auto; }
+}
+
 @media (max-width: 900px) {
 	.ai-prob-row { width: 100%; max-width: none; }
 	.ai-prob-meta { align-items: flex-start; }

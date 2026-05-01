@@ -8,14 +8,12 @@ actionable task + resource recommendations.
 Trigger points:  after any submission (journal, screening, task).
 """
 import logging
-import time
 import uuid
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from google import genai
 from google.genai import types
-from google.genai.errors import ServerError
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -26,6 +24,9 @@ from app.models.journal import JournalEntry, JournalAnalysis
 from app.models.task import Task, TaskSession, TaskResult
 from app.models.recommendation import Recommendation, Resource, RecommendationStatus
 from app.models.notification import Notification
+from app.models.additional_screening import AdditionalScreening
+from app.models.comorbidity_screening import ComorbidityScreening
+from app.models.behavioral_observation import BehavioralObservation
 from app.utils.crypto import encrypt_text, decrypt_text
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,22 @@ _SYSTEM_PROMPT = """\
 You are a clinical-psychology assistant for an ASD (Autism Spectrum Disorder) \
 behavioral screening and support platform. You receive a structured snapshot of \
 a user's latest examination data and must produce personalised recommendations.
+
+DATA SOURCES (you may receive any/all of these):
+- AQ-10 screening: raw score (0-10) with ML-predicted risk level
+- Additional ASD screenings: RAADS-R, CAST, SCQ, SRS-2 with domain scores
+- Comorbidity screenings: PHQ-9 (depression), GAD-7 (anxiety), ASRS (ADHD) severity
+- Cognitive tasks: 12 neuropsych tasks across 4 pillars with raw metrics
+- Journal analyses: AI-scored behavioral attributes (mood, anxiety, social, sensory, etc.)
+- Behavioral observations: structured ABC logs with category counts and severity
+
+INTEGRATION RULES:
+- Consider ALL available data holistically — do not focus on one source alone.
+- If comorbidity screenings show elevated depression/anxiety, factor into task recommendations \
+  (e.g., suggest calming tasks, journaling, or lower difficulty levels).
+- If behavioral observations show frequent meltdowns or sensory issues, recommend relevant tasks \
+  (sensory processing, emotional regulation).
+- Cross-reference AQ-10 with additional ASD screenings for convergent evidence.
 
 STRICT LENGTH RULES — you MUST follow these exactly or the response will be rejected:
 - overall_summary: max 60 words, 2-3 sentences.
@@ -207,6 +224,67 @@ def _gather_user_snapshot(user_id: int, db: Session) -> Optional[Dict[str, Any]]
 
     if not snapshot:
         return None
+
+    # 4. Additional ASD screenings (RAADS-R, CAST, SCQ, SRS-2)
+    additional = (
+        db.query(AdditionalScreening)
+        .filter(AdditionalScreening.user_id == user_id, AdditionalScreening.completed_at.isnot(None))
+        .order_by(desc(AdditionalScreening.completed_at))
+        .limit(5)
+        .all()
+    )
+    if additional:
+        snapshot["additional_screenings"] = [
+            {
+                "instrument": a.instrument,
+                "total_score": a.total_score,
+                "max_score": a.max_score,
+                "severity": a.severity,
+                "domain_scores": a.domain_scores,
+                "completed_at": a.completed_at.isoformat() if a.completed_at else None,
+            }
+            for a in additional
+        ]
+
+    # 5. Comorbidity screenings (PHQ-9, GAD-7, ASRS)
+    comorbidity = (
+        db.query(ComorbidityScreening)
+        .filter(ComorbidityScreening.user_id == user_id, ComorbidityScreening.completed_at.isnot(None))
+        .order_by(desc(ComorbidityScreening.completed_at))
+        .limit(5)
+        .all()
+    )
+    if comorbidity:
+        snapshot["comorbidity_screenings"] = [
+            {
+                "instrument": c.instrument,
+                "total_score": c.total_score,
+                "max_score": c.max_score,
+                "severity": c.severity,
+                "completed_at": c.completed_at.isoformat() if c.completed_at else None,
+            }
+            for c in comorbidity
+        ]
+
+    # 6. Behavioral observations summary (last 30)
+    observations = (
+        db.query(BehavioralObservation)
+        .filter(BehavioralObservation.user_id == user_id)
+        .order_by(desc(BehavioralObservation.created_at))
+        .limit(30)
+        .all()
+    )
+    if observations:
+        cat_counts = {}
+        for obs in observations:
+            cat_counts[obs.category] = cat_counts.get(obs.category, 0) + 1
+        severe_count = sum(1 for o in observations if o.intensity == "severe")
+        snapshot["behavioral_observations"] = {
+            "total": len(observations),
+            "category_counts": cat_counts,
+            "severe_count": severe_count,
+        }
+
     return snapshot
 
 
@@ -240,63 +318,29 @@ def _analyse_with_gemini(snapshot: Dict[str, Any], global_resources: list) -> Op
         user_snapshot=snapshot_str,
     )
 
-    model_candidates = [settings.GEMINI_MODEL_NAME] + [m for m in settings.GEMINI_FALLBACK_MODELS if m != settings.GEMINI_MODEL_NAME]
-    max_attempts = max(1, settings.GEMINI_MAX_RETRY_ATTEMPTS)
-    delay_seconds = max(0, settings.GEMINI_RETRY_DELAY_SECONDS)
+    try:
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model=_MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=_SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                response_schema=RecommendationResult,
+                temperature=0.3,
+                max_output_tokens=4096,
+            ),
+        )
+    except Exception:
+        logger.exception("Gemini recommendation call failed.")
+        return None
 
-    for model_name in model_candidates:
-        for attempt in range(1, max_attempts + 1):
-            try:
-                client = genai.Client(api_key=settings.GEMINI_API_KEY)
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=_SYSTEM_PROMPT,
-                        response_mime_type="application/json",
-                        response_schema=RecommendationResult,
-                        temperature=0.3,
-                        max_output_tokens=4096,
-                    ),
-                )
-                result = RecommendationResult.model_validate_json(response.text)
-                if model_name != settings.GEMINI_MODEL_NAME:
-                    logger.warning(
-                        "Gemini fallback model used: %s after %s attempts on previous model(s).",
-                        model_name,
-                        attempt,
-                    )
-                return result
-            except ServerError as err:
-                status_code = getattr(err, 'status_code', None)
-                msg = getattr(err, 'message', str(err))
-                logger.warning(
-                    "Gemini model %s attempt %s/%s failed with status %s: %s",
-                    model_name,
-                    attempt,
-                    max_attempts,
-                    status_code,
-                    msg,
-                )
-                if attempt < max_attempts and status_code in {429, 500, 502, 503, 504}:
-                    sleep_time = delay_seconds * (2 ** (attempt - 1))
-                    logger.info("Retrying Gemini model %s after %s seconds.", model_name, sleep_time)
-                    time.sleep(sleep_time)
-                    continue
-                break
-            except Exception as err:
-                logger.exception("Gemini recommendation call failed on model %s.", model_name)
-                if attempt < max_attempts:
-                    sleep_time = delay_seconds * (2 ** (attempt - 1))
-                    logger.info("Retrying Gemini model %s after %s seconds due to exception.", model_name, sleep_time)
-                    time.sleep(sleep_time)
-                    continue
-                break
-
-        logger.warning("Model %s exhausted without success; trying next fallback model if available.", model_name)
-
-    logger.error("All Gemini models failed to produce recommendations.")
-    return None
+    try:
+        result = RecommendationResult.model_validate_json(response.text)
+        return result
+    except Exception:
+        logger.exception("Failed to parse Gemini recommendation response: %s", (response.text or "")[:300])
+        return None
 
 
 # ---------------------------------------------------------------------------

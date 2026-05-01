@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { ProtectedRoute, AdminRoute, PublicOnlyRoute } from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
 import Dashboard from './pages/Dashboard'
 import Unauthorized from './pages/Unauthorized'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -24,6 +25,11 @@ import TaskHistory from './pages/TaskHistory'
 import Profile from './pages/Profile'
 import Analysis from './pages/Analysis'
 import ChangePassword from './pages/ChangePassword'
+import ForgotPassword from './pages/ForgotPassword'
+import AdditionalScreening from './pages/AdditionalScreening'
+import ComorbidityScreening from './pages/ComorbidityScreening'
+import BehavioralLog from './pages/BehavioralLog'
+import Referrals from './pages/Referrals'
 
 function App() {
   return (
@@ -47,6 +53,8 @@ function App() {
               </PublicOnlyRoute>
             } 
           />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           
           {/* Protected routes - any authenticated user */}
           <Route
@@ -132,6 +140,40 @@ function App() {
             element={
               <ProtectedRoute>
                 <TaskHistory />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Clinical feature routes */}
+          <Route
+            path="/additional-screening"
+            element={
+              <ProtectedRoute>
+                <AdditionalScreening />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/comorbidity-screening"
+            element={
+              <ProtectedRoute>
+                <ComorbidityScreening />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/behavioral-log"
+            element={
+              <ProtectedRoute>
+                <BehavioralLog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/referrals"
+            element={
+              <ProtectedRoute>
+                <Referrals />
               </ProtectedRoute>
             }
           />

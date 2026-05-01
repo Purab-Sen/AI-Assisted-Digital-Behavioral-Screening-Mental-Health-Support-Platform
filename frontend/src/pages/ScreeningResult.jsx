@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import screeningService from '../services/screeningService'
 import NavBar from '../components/NavBar'
+import { formatDateLongIST } from '../utils/formatDate'
 import './ScreeningResult.css'
 
 function ScreeningResultDetail() {
@@ -99,14 +100,7 @@ function ScreeningResultDetail() {
         </Link>
         <h1>Screening Result</h1>
         <p className="result-date">
-          {new Date(result.completed_at).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
+          {formatDateLongIST(result.completed_at)}
         </p>
       </div>
 

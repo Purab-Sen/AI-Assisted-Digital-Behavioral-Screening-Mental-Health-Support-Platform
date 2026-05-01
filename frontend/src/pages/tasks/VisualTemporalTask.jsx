@@ -16,6 +16,9 @@ function VisualTemporalTask({ config, onComplete }) {
   const stepUp = config.step_up_ms || 60;
   const totalTrials = config.total_trials || 30;
 
+  const catchDiff = config.catch_difference_ms || 500; // Very obvious difference for catch trials
+  const catchInterval = 10; // Insert a catch trial every N trials
+
   const [currentDiff, setCurrentDiff] = useState(initialDiff);
   const [trialIndex, setTrialIndex] = useState(0);
   const [phase, setPhase] = useState('ready'); // ready, stim1, gap, stim2, respond, feedback
@@ -25,6 +28,8 @@ function VisualTemporalTask({ config, onComplete }) {
   const [reversals, setReversals] = useState([]);
   const [lastDirection, setLastDirection] = useState(null); // 'up' or 'down'
   const [trialStartTime, setTrialStartTime] = useState(null);
+  const [isCatchTrial, setIsCatchTrial] = useState(false);
+  const [catchResults, setCatchResults] = useState({ correct: 0, total: 0 });
   const timerRef = useRef(null);
 
   // Start first trial
@@ -35,12 +40,17 @@ function VisualTemporalTask({ config, onComplete }) {
   }, []);
 
   const startTrial = useCallback(() => {
+    // Insert catch trial every catchInterval trials (except first)
+    const isCatch = trialIndex > 0 && trialIndex % catchInterval === 0;
+    setIsCatchTrial(isCatch);
+    const activeDiff = isCatch ? catchDiff : currentDiff;
+
     const isLongerFirst = Math.random() < 0.5;
     setLongerFirst(isLongerFirst);
     setPhase('stim1');
 
-    const dur1 = isLongerFirst ? baseDuration + currentDiff : baseDuration;
-    const dur2 = isLongerFirst ? baseDuration : baseDuration + currentDiff;
+    const dur1 = isLongerFirst ? baseDuration + activeDiff : baseDuration;
+    const dur2 = isLongerFirst ? baseDuration : baseDuration + activeDiff;
 
     // Show first stimulus
     setTimeout(() => {
@@ -80,6 +90,7 @@ function VisualTemporalTask({ config, onComplete }) {
         { metric_name: 'accuracy', metric_value: Math.round(accuracy * 100) / 100 },
         { metric_name: 'reversals', metric_value: reversals.length },
         { metric_name: 'avg_reaction_time', metric_value: Math.round(avgRT) },
+        { metric_name: 'catch_trial_accuracy', metric_value: catchResults.total > 0 ? Math.round((catchResults.correct / catchResults.total) * 100) : 100 },
       ]);
     }
   }, [trialIndex, totalTrials, phase]);
@@ -90,9 +101,24 @@ function VisualTemporalTask({ config, onComplete }) {
     const rt = Date.now() - trialStartTime;
     const correct = choseFirst === longerFirst;
 
-    setResponses(prev => [...prev, { correct, rt, diff: currentDiff }]);
+    setResponses(prev => [...prev, { correct, rt, diff: currentDiff, isCatch: isCatchTrial }]);
 
-    // 3-down/1-up staircase
+    // Track catch trial performance separately
+    if (isCatchTrial) {
+      setCatchResults(prev => ({
+        correct: prev.correct + (correct ? 1 : 0),
+        total: prev.total + 1,
+      }));
+      // Don't adjust staircase for catch trials
+      setPhase('feedback');
+      setTimeout(() => {
+        setTrialIndex(prev => prev + 1);
+        startTrial();
+      }, 1000);
+      return;
+    }
+
+    // 3-down/1-up staircase (only for non-catch trials)
     if (correct) {
       const newConsec = consecutiveCorrect + 1;
       setConsecutiveCorrect(newConsec);

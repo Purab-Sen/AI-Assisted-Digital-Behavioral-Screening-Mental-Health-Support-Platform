@@ -6,6 +6,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NavBar from '../components/NavBar'
 import screeningService from '../services/screeningService'
+import { formatDateOnlyIST } from '../utils/formatDate'
 import './Screening.css'
 
 function Screening() {
@@ -404,7 +405,7 @@ function ScreeningResultInline({ result, onNewScreening }) {
         <div className="result-header">
           <h1>Screening Complete</h1>
           <p className="result-date">
-            Completed on {new Date(result.completed_at).toLocaleDateString()}
+            Completed on {formatDateOnlyIST(result.completed_at)}
           </p>
         </div>
 

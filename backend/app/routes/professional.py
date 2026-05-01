@@ -1,14 +1,8 @@
-"""
-Professional Routes
-
-Endpoints for healthcare professionals to view shared patient data.
-Requires PROFESSIONAL or ADMIN role.
-"""
 from typing import List, Optional
 from collections import defaultdict
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -23,6 +17,10 @@ from app.models.analysis import UserAnalysisSnapshot
 from app.models.journal import JournalEntry
 from app.models.task import Task, TaskSession, TaskResult
 from app.models.recommendation import Recommendation, RecommendationStatus
+from app.models.additional_screening import AdditionalScreening
+from app.models.comorbidity_screening import ComorbidityScreening
+from app.models.behavioral_observation import BehavioralObservation
+from app.models.referral import Referral
 from app.schemas.professional import (
     ProfessionalProfileCreate,
     ProfessionalProfileResponse,
@@ -36,6 +34,8 @@ from app.schemas.professional import (
 )
 from app.utils.dependencies import get_professional_user, get_current_user
 from app.routes.notifications import create_notification
+from app.services import email_service
+from app.config import settings
 
 router = APIRouter(prefix="/professional", tags=["Professional"])
 
@@ -47,24 +47,25 @@ router = APIRouter(prefix="/professional", tags=["Professional"])
 @router.post("/profile", response_model=ProfessionalProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_professional_profile(
     profile_data: ProfessionalProfileCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Create a professional profile for the current user.
-    Automatically upgrades user role to PROFESSIONAL if approved.
+    Requires admin verification before the PROFESSIONAL role is granted.
     """
     # Check if profile already exists
     existing = db.query(ProfessionalProfile).filter(
         ProfessionalProfile.user_id == current_user.id
     ).first()
-    
+
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Professional profile already exists"
         )
-    
+
     profile = ProfessionalProfile(
         user_id=current_user.id,
         license_number=encrypt_text(profile_data.license_number),
@@ -72,11 +73,30 @@ async def create_professional_profile(
         institution=profile_data.institution,
         is_verified=False  # Requires admin verification
     )
-    
+
     db.add(profile)
     db.commit()
     db.refresh(profile)
-    
+
+    # Notify the applicant that their application was received
+    background_tasks.add_task(
+        email_service.send_professional_application_received,
+        current_user.email,
+        current_user.first_name,
+        profile_data.specialty,
+    )
+
+    # Notify configured admin email about the new application
+    if settings.MAIL_ADMIN_EMAIL:
+        background_tasks.add_task(
+            email_service.send_admin_new_professional_application,
+            settings.MAIL_ADMIN_EMAIL,
+            f"{current_user.first_name} {current_user.last_name}",
+            current_user.email,
+            profile_data.specialty,
+            profile_data.institution,
+        )
+
     profile.license_number = decrypt_text(profile.license_number) if profile.license_number else profile.license_number
     return profile
 
@@ -199,7 +219,9 @@ async def get_my_consultation_requests(
     Get all consultation requests sent to this professional.
     Professional only.
     """
-    query = db.query(ConsultationRequest).filter(
+    query = db.query(ConsultationRequest).options(
+        joinedload(ConsultationRequest.user)
+    ).filter(
         ConsultationRequest.professional_id == professional.id
     )
     
@@ -226,7 +248,7 @@ async def get_my_consultation_requests(
             "first_name": r.user.first_name if r.user else None,
             "last_name": r.user.last_name if r.user else None,
             "status": r.status.value if hasattr(r.status, 'value') else r.status,
-            "message": r.message,
+            "message": decrypt_text(r.message) if r.message else None,
             "created_at": r.created_at,
             "screening_count": len(completed_screenings),
             "last_screening_date": last_screening.completed_at if last_screening else None,
@@ -294,8 +316,18 @@ async def update_consultation_request(
             "/connect-professional"
         )
 
-    consultation.message = decrypt_text(consultation.message) if consultation.message else consultation.message
-    return consultation
+    # Build a plain dict so first_name/last_name are included in response
+    patient = consultation.user
+    return {
+        "id": consultation.id,
+        "user_id": consultation.user_id,
+        "professional_id": consultation.professional_id,
+        "first_name": patient.first_name if patient else None,
+        "last_name": patient.last_name if patient else None,
+        "status": consultation.status.value if hasattr(consultation.status, "value") else consultation.status,
+        "message": decrypt_text(consultation.message) if consultation.message else None,
+        "created_at": consultation.created_at,
+    }
 
 
 # =============================================================================
@@ -832,3 +864,337 @@ async def professional_dismiss_recommendation(
             pass
 
     return {"message": "Recommendation dismissed by professional"}
+
+
+# =============================================================================
+# Patient Additional ASD Screenings (RAADS-R, CAST, SCQ, SRS-2)
+# =============================================================================
+
+@router.get("/patients/{patient_id}/additional-screenings")
+async def get_patient_additional_screenings(
+    patient_id: int,
+    professional: User = Depends(get_professional_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all additional ASD screening results for a patient.
+    Includes domain scores and clinical interpretation.
+    """
+    consultation = db.query(ConsultationRequest).filter(
+        ConsultationRequest.user_id == patient_id,
+        ConsultationRequest.professional_id == professional.id,
+        ConsultationRequest.status == "accepted"
+    ).first()
+    if not consultation:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    screenings = (
+        db.query(AdditionalScreening)
+        .filter(
+            AdditionalScreening.user_id == patient_id,
+            AdditionalScreening.completed_at.isnot(None),
+        )
+        .order_by(AdditionalScreening.completed_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": s.id,
+            "instrument": s.instrument,
+            "age_group": s.age_group,
+            "total_score": s.total_score,
+            "max_score": s.max_score,
+            "domain_scores": s.domain_scores,
+            "severity": s.severity,
+            "interpretation": decrypt_text(s.interpretation) if s.interpretation else None,
+            "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+        }
+        for s in screenings
+    ]
+
+
+# =============================================================================
+# Patient Comorbidity Screenings (PHQ-9, GAD-7, ASRS)
+# =============================================================================
+
+@router.get("/patients/{patient_id}/comorbidity-screenings")
+async def get_patient_comorbidity_screenings(
+    patient_id: int,
+    professional: User = Depends(get_professional_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all comorbidity screening results for a patient.
+    Includes clinical flags (e.g. PHQ-9 Q9 suicidal ideation flag).
+    """
+    import json as _json
+
+    consultation = db.query(ConsultationRequest).filter(
+        ConsultationRequest.user_id == patient_id,
+        ConsultationRequest.professional_id == professional.id,
+        ConsultationRequest.status == "accepted"
+    ).first()
+    if not consultation:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    screenings = (
+        db.query(ComorbidityScreening)
+        .filter(
+            ComorbidityScreening.user_id == patient_id,
+            ComorbidityScreening.completed_at.isnot(None),
+        )
+        .order_by(ComorbidityScreening.completed_at.desc())
+        .all()
+    )
+
+    results = []
+    for s in screenings:
+        flags = None
+        if s.clinical_flags:
+            try:
+                flags = _json.loads(decrypt_text(s.clinical_flags) or "{}")
+            except Exception:
+                flags = {}
+        results.append({
+            "id": s.id,
+            "instrument": s.instrument,
+            "total_score": s.total_score,
+            "max_score": s.max_score,
+            "severity": s.severity,
+            "clinical_flags": flags,
+            "interpretation": decrypt_text(s.interpretation) if s.interpretation else None,
+            "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+        })
+    return results
+
+
+# =============================================================================
+# Comprehensive Clinical Summary (aggregates ALL assessment data)
+# =============================================================================
+
+@router.get("/patients/{patient_id}/clinical-summary")
+async def get_patient_clinical_summary(
+    patient_id: int,
+    professional: User = Depends(get_professional_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Comprehensive clinical summary aggregating all assessment data for a patient.
+    Designed for clinical decision-making:
+      - AQ-10 + ML risk with longitudinal trend
+      - Additional ASD instruments with cross-instrument convergence
+      - Comorbidity profile with clinical flags
+      - Behavioral observation patterns (ABC summary)
+      - Referral pathway status
+      - Task-based cognitive profile
+    """
+    import json as _json
+
+    consultation = db.query(ConsultationRequest).filter(
+        ConsultationRequest.user_id == patient_id,
+        ConsultationRequest.professional_id == professional.id,
+        ConsultationRequest.status == "accepted"
+    ).first()
+    if not consultation:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    patient = db.query(User).filter(User.id == patient_id).first()
+
+    # ── AQ-10 Screening History ──
+    aq10_sessions = (
+        db.query(ScreeningSession)
+        .filter(ScreeningSession.user_id == patient_id, ScreeningSession.completed_at.isnot(None))
+        .order_by(ScreeningSession.completed_at.desc())
+        .all()
+    )
+    aq10_summary = None
+    if aq10_sessions:
+        latest = aq10_sessions[0]
+        scores = [s.raw_score for s in aq10_sessions if s.raw_score is not None]
+        aq10_summary = {
+            "total_assessments": len(aq10_sessions),
+            "latest_score": latest.raw_score,
+            "latest_risk_level": latest.risk_level.value if latest.risk_level else None,
+            "latest_ml_probability": latest.ml_risk_score,
+            "latest_ml_label": latest.ml_probability_label,
+            "score_trend": scores[:5],  # Most recent 5 for trend
+            "latest_date": latest.completed_at.isoformat() if latest.completed_at else None,
+        }
+
+    # ── Additional ASD Instruments ──
+    add_screenings = (
+        db.query(AdditionalScreening)
+        .filter(AdditionalScreening.user_id == patient_id, AdditionalScreening.completed_at.isnot(None))
+        .order_by(AdditionalScreening.completed_at.desc())
+        .all()
+    )
+    # Group by instrument, take latest per instrument
+    instrument_labels = {"raads_r": "RAADS-R", "cast": "CAST", "scq": "SCQ", "srs_2": "SRS-2"}
+    asd_instruments = {}
+    for s in add_screenings:
+        if s.instrument not in asd_instruments:
+            asd_instruments[s.instrument] = {
+                "label": instrument_labels.get(s.instrument, s.instrument),
+                "total_score": s.total_score,
+                "max_score": s.max_score,
+                "severity": s.severity,
+                "domain_scores": s.domain_scores,
+                "interpretation": decrypt_text(s.interpretation) if s.interpretation else None,
+                "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+                "assessment_count": 0,
+            }
+        asd_instruments[s.instrument]["assessment_count"] += 1
+
+    # Cross-instrument convergence: count how many instruments flag elevated/clinical
+    elevated_instruments = sum(
+        1 for v in asd_instruments.values()
+        if v["severity"] in ("moderate", "severe", "clinical")
+    )
+    convergence_level = (
+        "strong" if elevated_instruments >= 3
+        else "moderate" if elevated_instruments >= 2
+        else "mild" if elevated_instruments >= 1
+        else "none"
+    )
+
+    # ── Comorbidity Profile ──
+    como_screenings = (
+        db.query(ComorbidityScreening)
+        .filter(ComorbidityScreening.user_id == patient_id, ComorbidityScreening.completed_at.isnot(None))
+        .order_by(ComorbidityScreening.completed_at.desc())
+        .all()
+    )
+    comorbidity_labels = {"phq9": "Depression (PHQ-9)", "gad7": "Anxiety (GAD-7)", "asrs": "ADHD (ASRS)"}
+    comorbidity_profile = {}
+    has_critical_flags = False
+    for s in como_screenings:
+        if s.instrument not in comorbidity_profile:
+            flags = None
+            if s.clinical_flags:
+                try:
+                    flags = _json.loads(decrypt_text(s.clinical_flags) or "{}")
+                except Exception:
+                    flags = {}
+            # Check for critical flags (e.g. PHQ-9 Q9 suicidal ideation)
+            if flags and flags.get("suicidal_ideation"):
+                has_critical_flags = True
+            comorbidity_profile[s.instrument] = {
+                "label": comorbidity_labels.get(s.instrument, s.instrument),
+                "total_score": s.total_score,
+                "max_score": s.max_score,
+                "severity": s.severity,
+                "clinical_flags": flags,
+                "interpretation": decrypt_text(s.interpretation) if s.interpretation else None,
+                "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+                "assessment_count": 0,
+            }
+        comorbidity_profile[s.instrument]["assessment_count"] += 1
+
+    # ── Behavioral Observation Patterns ──
+    observations = (
+        db.query(BehavioralObservation)
+        .filter(BehavioralObservation.user_id == patient_id)
+        .order_by(BehavioralObservation.observation_date.desc())
+        .limit(100)
+        .all()
+    )
+    behavior_summary = {"total": len(observations), "categories": {}, "top_patterns": [], "severity_distribution": {"mild": 0, "moderate": 0, "severe": 0}}
+    for obs in observations:
+        cat = obs.category or "unknown"
+        if cat not in behavior_summary["categories"]:
+            behavior_summary["categories"][cat] = {"count": 0, "behaviors": {}, "settings": {}}
+        cs = behavior_summary["categories"][cat]
+        cs["count"] += 1
+        bt = obs.behavior_type or "unknown"
+        cs["behaviors"][bt] = cs["behaviors"].get(bt, 0) + 1
+        if obs.setting:
+            cs["settings"][obs.setting] = cs["settings"].get(obs.setting, 0) + 1
+        if obs.intensity in behavior_summary["severity_distribution"]:
+            behavior_summary["severity_distribution"][obs.intensity] += 1
+
+    # Top behavior patterns
+    all_beh = {}
+    for obs in observations:
+        key = f"{obs.category}:{obs.behavior_type}"
+        all_beh[key] = all_beh.get(key, 0) + 1
+    behavior_summary["top_patterns"] = [
+        {"category": k.split(":")[0], "behavior": k.split(":")[1], "count": v}
+        for k, v in sorted(all_beh.items(), key=lambda x: x[1], reverse=True)[:8]
+    ]
+
+    # ── Referral Status ──
+    referrals = (
+        db.query(Referral)
+        .filter(Referral.user_id == patient_id)
+        .order_by(Referral.created_at.desc())
+        .all()
+    )
+    referral_summary = {
+        "total": len(referrals),
+        "by_status": {},
+        "active": [],
+    }
+    for r in referrals:
+        referral_summary["by_status"][r.status] = referral_summary["by_status"].get(r.status, 0) + 1
+        if r.status in ("recommended", "acknowledged", "scheduled"):
+            referral_summary["active"].append({
+                "id": r.id,
+                "type": r.referral_type,
+                "urgency": r.urgency,
+                "status": r.status,
+                "reason": decrypt_text(r.reason) if r.reason else None,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
+
+    # ── Task Cognitive Profile (aggregate) ──
+    task_sessions = (
+        db.query(TaskSession)
+        .join(Task)
+        .filter(TaskSession.user_id == patient_id, TaskSession.completed_at.isnot(None))
+        .all()
+    )
+    pillar_labels = {
+        "executive_function": "Executive Function",
+        "social_cognition": "Social Cognition",
+        "joint_attention": "Joint Attention",
+        "sensory_processing": "Sensory Processing",
+    }
+    cognitive_profile = {}
+    for ts in task_sessions:
+        pillar = ts.task.pillar or "unknown"
+        if pillar not in cognitive_profile:
+            cognitive_profile[pillar] = {"label": pillar_labels.get(pillar, pillar), "sessions": 0, "max_difficulty": 0}
+        cognitive_profile[pillar]["sessions"] += 1
+        if ts.difficulty_level and ts.difficulty_level > cognitive_profile[pillar]["max_difficulty"]:
+            cognitive_profile[pillar]["max_difficulty"] = ts.difficulty_level
+
+    # ── Clinical Risk Indicators ──
+    risk_indicators = []
+    if aq10_summary and aq10_summary["latest_ml_label"] in ("high", "very_high"):
+        risk_indicators.append({"level": "high", "source": "AQ-10 ML", "detail": f"ML probability label: {aq10_summary['latest_ml_label']}"})
+    if convergence_level in ("strong", "moderate"):
+        risk_indicators.append({"level": "high" if convergence_level == "strong" else "moderate", "source": "Cross-instrument", "detail": f"{elevated_instruments} ASD instruments show elevated scores"})
+    if has_critical_flags:
+        risk_indicators.append({"level": "critical", "source": "PHQ-9", "detail": "Suicidal ideation flag (Q9) is elevated — immediate clinical attention required"})
+    for k, v in comorbidity_profile.items():
+        if v["severity"] in ("moderately_severe", "severe"):
+            risk_indicators.append({"level": "high", "source": v["label"], "detail": f"Severity: {v['severity']}"})
+    severe_behaviors = behavior_summary["severity_distribution"].get("severe", 0)
+    if severe_behaviors >= 3:
+        risk_indicators.append({"level": "moderate", "source": "Behavioral", "detail": f"{severe_behaviors} severe-intensity observations logged"})
+
+    return {
+        "patient_id": patient_id,
+        "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "Unknown",
+        "consultation_since": consultation.created_at.isoformat() if consultation.created_at else None,
+        "risk_indicators": risk_indicators,
+        "aq10": aq10_summary,
+        "asd_instruments": asd_instruments,
+        "asd_convergence": convergence_level,
+        "comorbidity_profile": comorbidity_profile,
+        "has_critical_flags": has_critical_flags,
+        "behavior_summary": behavior_summary,
+        "referral_summary": referral_summary,
+        "cognitive_profile": cognitive_profile,
+    }

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.utils.logging import get_logger
 from app.routes import auth, admin, professional, users, screening, tasks, journal, resources, notifications, analysis, recommendations
+from app.routes import additional_screening, comorbidity, behavioral_observations, referrals, reports
 from app.database import Base, engine
 
 # 🔥 IMPORTANT: Import all models so SQLAlchemy registers them
@@ -25,9 +26,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     description="AI-assisted behavioral screening and support platform for ASD",
     version=settings.APP_VERSION,
-    openapi_url="/api/v1/openapi.json",
-    docs_url="/api/v1/docs",
-    redoc_url="/api/v1/redoc"
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 app.state.limiter = limiter
@@ -78,6 +78,11 @@ app.include_router(resources.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
+app.include_router(additional_screening.router, prefix="/api/v1")
+app.include_router(comorbidity.router, prefix="/api/v1")
+app.include_router(behavioral_observations.router, prefix="/api/v1")
+app.include_router(referrals.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 # -----------------------------
 # Startup Event
@@ -110,7 +115,7 @@ def on_startup():
 # -----------------------------
 # Root Endpoints
 # -----------------------------
-@app.get("/api/v1")
+@app.get("/")
 def root():
     return {
         "message": "ASD Screening & Support Platform API",

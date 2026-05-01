@@ -5,41 +5,75 @@
  * High Go:No-Go ratio creates prepotent response that must be inhibited
  * Key metric: False Alarm (FA) Rate
  * Tracks: Commission errors, omission errors, RT variability (IIV)
+ * 
+ * Includes instructions screen and practice phase before real trials.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 function GoNoGoTask({ config, onComplete }) {
-  const goRatio = config.go_ratio || 0.5;
+  // Clinical standard: 75:25 Go:NoGo creates prepotent response (Nosek & Banaji, 2001)
+  const goRatio = config.go_ratio || 0.75;
   const stimDurationMs = config.stimulus_duration_ms || 800;
   const isiMs = config.isi_ms || 1500;
   const totalTrials = config.total_trials || 40;
   const goStim = config.go_stimulus || '🟢';
   const nogoStim = config.nogo_stimulus || '🔴';
+  const practiceTrialCount = 8;
 
   const [trials, setTrials] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [showingStimulus, setShowingStimulus] = useState(false);
   const [responses, setResponses] = useState({});
   const [stimulusStartTime, setStimulusStartTime] = useState(null);
-  const [phase, setPhase] = useState('ready');
+  const [phase, setPhase] = useState('instructions'); // instructions | practice | practice_done | running | done
   const [feedback, setFeedback] = useState(null);
+  const [practiceResults, setPracticeResults] = useState([]);
   const responded = useRef(false);
   const timerRef = useRef(null);
 
-  // Generate trial sequence
-  useEffect(() => {
+  // Generate trial sequence with constrained randomization
+  // Prevents >2 consecutive NoGo trials (maintains prepotent Go response)
+  const generateTrials = (count, ratio) => {
     const t = [];
-    for (let i = 0; i < totalTrials; i++) {
-      t.push({ isGo: Math.random() < goRatio });
+    let consecutiveNoGo = 0;
+    for (let i = 0; i < count; i++) {
+      let isGo = Math.random() < ratio;
+      if (!isGo) {
+        consecutiveNoGo++;
+        if (consecutiveNoGo > 2) {
+          isGo = true;
+          consecutiveNoGo = 0;
+        }
+      } else {
+        consecutiveNoGo = 0;
+      }
+      t.push({ isGo });
     }
-    setTrials(t);
+    return t;
+  };
+
+  // Start practice trials
+  const startPractice = () => {
+    const practiceTrials = generateTrials(practiceTrialCount, 0.625); // 62.5% go for practice (more NoGo exposure)
+    setTrials(practiceTrials);
+    setPhase('practice');
+    setCurrentIndex(0);
+    setResponses({});
+    setPracticeResults([]);
+  };
+
+  // Start real trials
+  const startReal = () => {
+    const realTrials = generateTrials(totalTrials, goRatio);
+    setTrials(realTrials);
     setPhase('running');
     setCurrentIndex(0);
-  }, []);
+    setResponses({});
+  };
 
-  // Run each trial
+  // Run each trial (works for both practice and running)
   useEffect(() => {
-    if (phase !== 'running' || currentIndex < 0 || currentIndex >= totalTrials) return;
+    if ((phase !== 'running' && phase !== 'practice') || currentIndex < 0 || currentIndex >= trials.length) return;
 
     responded.current = false;
     setFeedback(null);
@@ -57,9 +91,13 @@ function GoNoGoTask({ config, onComplete }) {
           }
           return prev;
         });
-        // Show feedback for misses on Go trials
-        if (trials[currentIndex]?.isGo) {
-          setFeedback('miss');
+        // Show feedback only during practice
+        if (phase === 'practice') {
+          if (trials[currentIndex]?.isGo) {
+            setFeedback('miss');
+          } else {
+            setFeedback('correct_reject');
+          }
         }
       }
 
@@ -77,7 +115,22 @@ function GoNoGoTask({ config, onComplete }) {
     };
   }, [currentIndex, phase, trials]);
 
-  // Completion
+  // Practice completion
+  useEffect(() => {
+    if (phase === 'practice' && currentIndex >= practiceTrialCount && trials.length > 0) {
+      // Calculate practice accuracy
+      let correct = 0;
+      for (let i = 0; i < practiceTrialCount; i++) {
+        const resp = responses[i];
+        if (trials[i]?.isGo && resp?.responded) correct++;
+        if (!trials[i]?.isGo && !resp?.responded) correct++;
+      }
+      setPracticeResults([{ correct, total: practiceTrialCount }]);
+      setPhase('practice_done');
+    }
+  }, [currentIndex, phase, trials.length]);
+
+  // Real trial completion
   useEffect(() => {
     if (currentIndex >= totalTrials && totalTrials > 0 && phase === 'running') {
       setPhase('done');
@@ -136,17 +189,20 @@ function GoNoGoTask({ config, onComplete }) {
   }, [currentIndex, totalTrials, phase]);
 
   const handleResponse = useCallback(() => {
-    if (!showingStimulus || responded.current || phase !== 'running') return;
+    if (!showingStimulus || responded.current || (phase !== 'running' && phase !== 'practice')) return;
     responded.current = true;
     const rt = Date.now() - stimulusStartTime;
 
     setResponses(prev => ({ ...prev, [currentIndex]: { responded: true, rt } }));
 
-    // Immediate feedback
-    if (trials[currentIndex]?.isGo) {
-      setFeedback('correct');
+    // During practice: full feedback. During real: only show false alarm feedback
+    if (phase === 'practice') {
+      setFeedback(trials[currentIndex]?.isGo ? 'correct' : 'false_alarm');
     } else {
-      setFeedback('false_alarm');
+      // Real trials: only flag commission errors (false alarms) — no positive feedback to avoid interrupting flow
+      if (!trials[currentIndex]?.isGo) {
+        setFeedback('false_alarm');
+      }
     }
   }, [showingStimulus, stimulusStartTime, currentIndex, phase, trials]);
 
@@ -158,18 +214,69 @@ function GoNoGoTask({ config, onComplete }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [handleResponse]);
 
-  const progress = totalTrials > 0 ? (currentIndex / totalTrials) * 100 : 0;
+  const activeTrialCount = phase === 'practice' ? practiceTrialCount : totalTrials;
+  const progress = activeTrialCount > 0 ? (currentIndex / activeTrialCount) * 100 : 0;
   const currentTrial = trials[currentIndex];
+
+  // Instructions screen
+  if (phase === 'instructions') {
+    return (
+      <div className="task-arena gonogo-task">
+        <div className="instructions-screen">
+          <h2>Go / No-Go Task</h2>
+          <div className="instructions-content" style={{ textAlign: 'left', maxWidth: 500, margin: '0 auto' }}>
+            <p><strong>How to play:</strong></p>
+            <ul style={{ lineHeight: '2em' }}>
+              <li>You will see symbols appear on screen one at a time.</li>
+              <li>When you see {goStim} (green) — <strong>Press SPACE or tap</strong> as fast as you can!</li>
+              <li>When you see {nogoStim} (red) — <strong>Do NOT press anything</strong>. Hold still!</li>
+              <li>Be quick but careful. The green circle will appear more often.</li>
+            </ul>
+            <p style={{ marginTop: '1em', color: '#666' }}>
+              You'll get {practiceTrialCount} practice trials first, then {totalTrials} real trials.
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={startPractice} style={{ marginTop: '1.5em', fontSize: '1.1em' }}>
+            Start Practice
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Practice done screen
+  if (phase === 'practice_done') {
+    const pResult = practiceResults[0];
+    const pAccuracy = pResult ? Math.round((pResult.correct / pResult.total) * 100) : 0;
+    return (
+      <div className="task-arena gonogo-task">
+        <div className="instructions-screen">
+          <h2>Practice Complete!</h2>
+          <p style={{ fontSize: '1.2em' }}>
+            You got <strong>{pResult?.correct}/{pResult?.total}</strong> correct ({pAccuracy}%)
+          </p>
+          <div style={{ margin: '1em 0', padding: '1em', background: '#f0f8ff', borderRadius: 8 }}>
+            <p>Remember:</p>
+            <p>{goStim} = Press SPACE (Go!)</p>
+            <p>{nogoStim} = Do NOT press (Stop!)</p>
+          </div>
+          <button className="btn btn-primary" onClick={startReal} style={{ fontSize: '1.1em' }}>
+            Start Real Task ({totalTrials} trials)
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="task-arena gonogo-task">
       <div className="task-level-badge">
-        Go:No-Go {Math.round(goRatio * 100)}:{Math.round((1 - goRatio) * 100)}
+        {phase === 'practice' ? 'PRACTICE' : `Go:No-Go ${Math.round(goRatio * 100)}:${Math.round((1 - goRatio) * 100)}`}
       </div>
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }} />
       </div>
-      <div className="trial-counter">{Math.min(currentIndex + 1, totalTrials)} / {totalTrials}</div>
+      <div className="trial-counter">{Math.min(currentIndex + 1, activeTrialCount)} / {activeTrialCount}</div>
 
       <div className="stimulus-area" onClick={handleResponse}>
         {showingStimulus && currentTrial && (
@@ -177,12 +284,13 @@ function GoNoGoTask({ config, onComplete }) {
             {currentTrial.isGo ? goStim : nogoStim}
           </div>
         )}
-        {!showingStimulus && phase === 'running' && !feedback && (
+        {!showingStimulus && (phase === 'running' || phase === 'practice') && !feedback && (
           <div className="fixation-cross">+</div>
         )}
         {feedback === 'correct' && <div className="feedback-icon correct">✓</div>}
-        {feedback === 'false_alarm' && <div className="feedback-icon wrong">✗</div>}
-        {feedback === 'miss' && <div className="feedback-icon miss">Miss!</div>}
+        {feedback === 'correct_reject' && <div className="feedback-icon correct">✓ Good hold!</div>}
+        {feedback === 'false_alarm' && <div className="feedback-icon wrong">✗ Don't press for {nogoStim}!</div>}
+        {feedback === 'miss' && <div className="feedback-icon miss">Miss! Press for {goStim}</div>}
       </div>
 
       <p className="task-hint">

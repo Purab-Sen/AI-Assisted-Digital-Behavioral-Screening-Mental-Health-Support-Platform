@@ -216,14 +216,16 @@ function JointAttentionIJA({ config, onComplete }) {
     fbRef.current = setTimeout(advance, 2500);
   }, [advance]);
 
-  /* ── User taps the anomaly (correct) ── */
+  /* ── User taps the anomaly (correct) — go directly to feedback ── */
   const handleAnomalyClick = useCallback(() => {
     if (phase !== 'scan') return;
     clearInterval(timerRef.current);
     const dTime = Date.now() - trialStartTime;
     setFoundTime(dTime);
-    setPhase('found');
-  }, [phase, trialStartTime]);
+    setResponses(prev => [...prev, { detected: true, shared: false, detectionTime: dTime, sharingTime: null }]);
+    setPhase('feedback');
+    fbRef.current = setTimeout(advance, 2200);
+  }, [phase, trialStartTime, advance]);
 
   /* ── User taps a normal item (incorrect) ── */
   const handleWrongClick = useCallback((emoji) => {
@@ -351,78 +353,25 @@ function JointAttentionIJA({ config, onComplete }) {
             })}
           </div>
 
-          {/* Character + share area */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 8,
-          }}>
-            <button
-              onClick={handleShare}
-              disabled={phase !== 'found'}
-              style={{
-                fontSize: 68, background: phase === 'found'
-                  ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'rgba(255,255,255,0.5)',
-                border: phase === 'found' ? '3px solid #3b82f6' : '2px solid rgba(0,0,0,.06)',
-                borderRadius: 22, padding: '12px 24px', cursor: phase === 'found' ? 'pointer' : 'default',
-                transition: 'all .25s ease',
-                boxShadow: phase === 'found' ? '0 0 20px rgba(59,130,246,.3)' : 'none',
-                animation: phase === 'found' ? 'TPpulse 1.2s ease infinite' : 'none',
-              }}
-              aria-label="Share with character"
-            >
-              {CHARACTER}
-            </button>
-
-            {phase === 'found' && (
-              <div style={{
-                marginTop: 12, textAlign: 'center', animation: 'TPbounceIn .35s ease',
-              }}>
-                <p style={{
-                  fontSize: 17, fontWeight: 700, color: '#1e40af',
-                  margin: '0 0 4px 0',
-                }}>
-                  🎯 Great find! Now tap the character to SHARE!
-                </p>
-                <p style={{
-                  fontSize: 14, color: '#64748b', margin: '0 0 8px 0',
-                }}>
-                  {cur.desc}
-                </p>
-                <button
-                  onClick={handleSkipShare}
-                  style={{
-                    fontSize: 12, color: '#94a3b8', background: 'none', border: 'none',
-                    cursor: 'pointer', textDecoration: 'underline',
-                  }}
-                >
-                  Skip sharing →
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Feedback overlay */}
           {phase === 'feedback' && (
             <div style={{
               position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
               padding: '14px 28px', borderRadius: 16, fontWeight: 700, fontSize: 20, zIndex: 20,
               animation: 'TPbounceIn .3s ease',
-              background: lastResp?.shared
+              background: lastResp?.detected
                 ? 'linear-gradient(135deg,#d1fae5,#a7f3d0)'
-                : lastResp?.detected
-                  ? 'linear-gradient(135deg,#fef3c7,#fde68a)'
-                  : wrongFlash
-                    ? 'linear-gradient(135deg,#fee2e2,#fecaca)'
-                    : 'linear-gradient(135deg,#fef3c7,#fde68a)',
-              color: lastResp?.shared ? '#065f46' : lastResp?.detected ? '#92400e' : '#991b1b',
+                : wrongFlash
+                  ? 'linear-gradient(135deg,#fee2e2,#fecaca)'
+                  : 'linear-gradient(135deg,#fef3c7,#fde68a)',
+              color: lastResp?.detected ? '#065f46' : wrongFlash ? '#991b1b' : '#92400e',
               boxShadow: '0 4px 16px rgba(0,0,0,.12)',
             }}>
-              {lastResp?.shared
-                ? '🎉 You shared your discovery!'
-                : lastResp?.detected
-                  ? '⏭️ You found it but didn\'t share!'
-                  : wrongFlash
-                    ? `❌ That's not unusual — the odd one was ${cur?.anomaly}`
-                    : '⏰ Time\'s up! Look for what doesn\'t belong!'}
+              {lastResp?.detected
+                ? `✅ Correct! ${cur?.desc}`
+                : wrongFlash
+                  ? `❌ That's not unusual — the odd one was ${cur?.anomaly}`
+                  : '⏰ Time\'s up! Look for what doesn\'t belong!'}
             </div>
           )}
         </div>
@@ -430,7 +379,6 @@ function JointAttentionIJA({ config, onComplete }) {
 
       <p style={{ textAlign: 'center', fontSize: 16, marginTop: 12, color: '#64748b', fontWeight: 500 }}>
         {phase === 'scan' && '🔍 Find the item that doesn\'t belong in this scene!'}
-        {phase === 'found' && '👆 Tap the character to share what you found!'}
       </p>
     </div>
   );

@@ -33,6 +33,8 @@ class ProfessionalProfileResponse(BaseModel):
     specialty: str
     institution: Optional[str]
     is_verified: bool
+    rejection_reason: Optional[str] = None
+    verified_at: Optional[datetime] = None
     created_at: datetime
     
     class Config:

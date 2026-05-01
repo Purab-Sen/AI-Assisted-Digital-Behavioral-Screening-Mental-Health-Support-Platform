@@ -6,6 +6,16 @@ export const authService = {
     return response.data
   },
 
+  async verifyEmail(email, otp) {
+    const response = await api.post('/auth/verify-email', { email, otp })
+    return response.data
+  },
+
+  async resendOtp(email) {
+    const response = await api.post('/auth/resend-otp', { email })
+    return response.data
+  },
+
   async login(email, password) {
     const response = await api.post('/auth/login', { email, password })
     const { access_token, refresh_token } = response.data
@@ -33,6 +43,20 @@ export const authService = {
     const response = await api.post('/auth/change-password', {
       current_password: currentPassword,
       new_password: newPassword
+    })
+    return response.data
+  },
+
+  async forgotPassword(email) {
+    const response = await api.post('/auth/forgot-password', { email })
+    return response.data
+  },
+
+  async resetPassword(email, otp, newPassword) {
+    const response = await api.post('/auth/reset-password', {
+      email,
+      otp,
+      new_password: newPassword,
     })
     return response.data
   },

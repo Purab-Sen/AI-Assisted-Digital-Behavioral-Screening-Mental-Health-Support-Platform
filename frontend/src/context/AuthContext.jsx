@@ -73,8 +73,9 @@ export function AuthProvider({ children }) {
   }
 
   const register = async (userData) => {
-    const newUser = await authService.register(userData)
-    return newUser
+    // Returns { message, requires_email_verification, email }
+    const result = await authService.register(userData)
+    return result
   }
 
   const logout = async () => {

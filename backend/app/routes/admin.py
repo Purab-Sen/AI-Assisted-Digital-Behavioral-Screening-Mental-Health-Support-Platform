@@ -1,11 +1,5 @@
-"""
-Admin Routes
-
-Administrative endpoints for user management and system statistics.
-All routes require ADMIN role.
-"""
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -27,11 +21,15 @@ from app.schemas.professional import ConsultationRequestResponse
 from app.schemas.professional import ProfessionalProfileResponse
 from app.utils.dependencies import get_admin_user
 from app.utils.crypto import decrypt_text
+from app.services import email_service
+from app.config import settings
 from pydantic import BaseModel
+from datetime import datetime, timezone
 
 
 class ProfessionalVerifyRequest(BaseModel):
     is_verified: bool
+    rejection_reason: Optional[str] = None
 
 
 class ResourceCreate(BaseModel):
@@ -49,6 +47,7 @@ class ResourceResponse(BaseModel):
     type: str
     content_or_url: Optional[str] = None
     target_risk_level: Optional[str] = None
+    professional_only: int = 0
     uploaded_by: Optional[int] = None
     patient_id: Optional[int] = None
 
@@ -289,30 +288,45 @@ async def delete_user(
 async def verify_professional(
     user_id: int,
     verify: ProfessionalVerifyRequest,
+    background_tasks: BackgroundTasks,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Verify or unverify a professional's profile.
-    When verified, the user's role is promoted to PROFESSIONAL.
-    When unverified, the role is reverted to USER.
+    Verify or reject a professional's profile.
+    Approval promotes the user role to PROFESSIONAL and sends a confirmation email.
+    Rejection reverts the role to USER and sends a rejection email with reason.
     Admin only.
     """
     profile = db.query(ProfessionalProfile).filter(ProfessionalProfile.user_id == user_id).first()
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professional profile not found")
 
-    profile.is_verified = bool(verify.is_verified)
-
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    # Auto-promote / demote role based on verification status
+    profile.is_verified = bool(verify.is_verified)
+
     if verify.is_verified:
         user.role = UserRole.PROFESSIONAL
+        profile.rejection_reason = None
+        profile.verified_at = datetime.now(timezone.utc)
+        background_tasks.add_task(
+            email_service.send_professional_approved,
+            user.email,
+            user.first_name,
+        )
     else:
         user.role = UserRole.USER
+        profile.rejection_reason = verify.rejection_reason
+        profile.verified_at = None
+        background_tasks.add_task(
+            email_service.send_professional_rejected,
+            user.email,
+            user.first_name,
+            verify.rejection_reason,
+        )
 
     db.commit()
     db.refresh(user)

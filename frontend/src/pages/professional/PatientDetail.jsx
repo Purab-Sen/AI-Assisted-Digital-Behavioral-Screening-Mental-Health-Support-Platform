@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import NavBar from '../../components/NavBar'
-import Modal from '../../components/Modal'
+import { formatDateTimeIST, formatDateOnlyIST, formatDateLongIST } from '../../utils/formatDate'
 import './PatientDetail.css'
 
 const EMPTY_RESOURCE = { title: '', type: 'article', description: '', content_or_url: '' }
@@ -14,7 +14,6 @@ export default function PatientDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [note, setNote] = useState('')
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -55,7 +54,14 @@ export default function PatientDetail() {
   const [dismissComment, setDismissComment] = useState('')
   const [showDismissModal, setShowDismissModal] = useState(null) // rec id or null
 
-  useEffect(() => { fetchDetail(); fetchPatientResources(); fetchTaskAnalytics(); fetchPatientRecs() }, [id])
+  // Clinical data state
+  const [clinicalData, setClinicalData] = useState({ observations: [], referrals: [], pdfLoading: false })
+  const [clinicalSummary, setClinicalSummary] = useState(null)
+  const [clinicalSummaryLoading, setClinicalSummaryLoading] = useState(false)
+  const [additionalScreenings, setAdditionalScreenings] = useState([])
+  const [comorbidityScreenings, setComorbidityScreenings] = useState([])
+
+  useEffect(() => { fetchDetail(); fetchPatientResources(); fetchTaskAnalytics(); fetchPatientRecs(); fetchClinicalData(); fetchClinicalSummary(); fetchAdditionalScreenings(); fetchComorbidityScreenings() }, [id])
 
   const fetchDetail = async () => {
     try {
@@ -103,6 +109,53 @@ export default function PatientDetail() {
     }
   }
 
+  const fetchClinicalData = async () => {
+    try {
+      const [obsRes, refRes] = await Promise.all([
+        api.get(`/behavioral-observations/patient/${id}`).catch(() => ({ data: [] })),
+        api.get(`/referrals/patient/${id}`).catch(() => ({ data: [] })),
+      ])
+      setClinicalData(prev => ({ ...prev, observations: obsRes.data || [], referrals: refRes.data || [] }))
+    } catch (e) { console.error(e) }
+  }
+
+  const fetchClinicalSummary = async () => {
+    try {
+      setClinicalSummaryLoading(true)
+      const res = await api.get(`/professional/patients/${id}/clinical-summary`)
+      setClinicalSummary(res.data)
+    } catch (err) { console.error('Failed to load clinical summary', err) }
+    finally { setClinicalSummaryLoading(false) }
+  }
+
+  const fetchAdditionalScreenings = async () => {
+    try {
+      const res = await api.get(`/professional/patients/${id}/additional-screenings`)
+      setAdditionalScreenings(res.data || [])
+    } catch (err) { console.error('Failed to load additional screenings', err) }
+  }
+
+  const fetchComorbidityScreenings = async () => {
+    try {
+      const res = await api.get(`/professional/patients/${id}/comorbidity-screenings`)
+      setComorbidityScreenings(res.data || [])
+    } catch (err) { console.error('Failed to load comorbidity screenings', err) }
+  }
+
+  const downloadPatientReport = async () => {
+    setClinicalData(prev => ({ ...prev, pdfLoading: true }))
+    try {
+      const res = await api.get(`/reports/patient/${id}`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `patient_${id}_report_${new Date().toISOString().split('T')[0]}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) { console.error(e) }
+    setClinicalData(prev => ({ ...prev, pdfLoading: false }))
+  }
+
   const handleDismissRec = async (recId) => {
     if (!dismissComment.trim()) return
     setDismissingRecId(recId)
@@ -114,7 +167,7 @@ export default function PatientDetail() {
       setDismissComment('')
       fetchPatientRecs()
     } catch (err) {
-      setModal({ open: true, title: 'Error', message: err?.response?.data?.detail || 'Failed to dismiss recommendation', onClose: () => setModal({ ...modal, open: false }) })
+      alert(err?.response?.data?.detail || 'Failed to dismiss recommendation')
     } finally {
       setDismissingRecId(null)
     }
@@ -176,7 +229,7 @@ export default function PatientDetail() {
       fetchDetail()
     } catch (err) {
       console.error(err)
-      setModal({ open: true, title: 'Error', message: 'Failed to add note', onClose: () => setModal({ ...modal, open: false }) })
+      alert('Failed to add note')
     }
   }
 
@@ -198,28 +251,11 @@ export default function PatientDetail() {
   }
 
   const deleteResource = async (resourceId) => {
-    setModal({
-      open: true,
-      title: 'Confirm Delete',
-      message: 'Delete this resource?',
-      onClose: () => setModal({ ...modal, open: false }),
-      primaryAction: {
-        label: 'Delete',
-        onClick: async () => {
-          setModal({ ...modal, open: false })
-          try {
-            await api.delete(`/resources/${resourceId}`)
-            fetchPatientResources()
-          } catch {
-            setModal({ open: true, title: 'Error', message: 'Failed to delete resource', onClose: () => setModal({ ...modal, open: false }) })
-          }
-        }
-      },
-      secondaryAction: {
-        label: 'Cancel',
-        onClick: () => setModal({ ...modal, open: false })
-      }
-    })
+    if (!confirm('Delete this resource?')) return
+    try {
+      await api.delete(`/resources/${resourceId}`)
+      fetchPatientResources()
+    } catch { alert('Failed to delete resource') }
   }
 
   const fetchGlobalResources = async () => {
@@ -251,7 +287,7 @@ export default function PatientDetail() {
         // Already recommended — mark it locally
         setRecommendedIds(prev => new Set([...prev, resourceId]))
       } else {
-        setModal({ open: true, title: 'Error', message: detail, onClose: () => setModal({ ...modal, open: false }) })
+        alert(detail)
       }
     } finally {
       setRecommendingId(null)
@@ -282,18 +318,17 @@ export default function PatientDetail() {
   )
 
   return (
-    <>
-      <div className="patient-detail-page">
-        <NavBar />
+    <div className="patient-detail-page">
+      <NavBar />
 
-        <div className="page-content">
-          <Link to="/professional/patients" className="back-link">← Back to Patients</Link>
+      <div className="page-content">
+        <Link to="/professional/patients" className="back-link">← Back to Patients</Link>
 
         <div className="patient-header">
           <div className="patient-header-avatar">{(patient.first_name?.[0] || '?').toUpperCase()}</div>
           <div>
             <h1 className="page-title" style={{ marginBottom: 4 }}>{patient.first_name} {patient.last_name}</h1>
-            <p className="page-subtitle" style={{ marginBottom: 0 }}>Shared {new Date(patient.consultation_date).toLocaleString()}</p>
+            <p className="page-subtitle" style={{ marginBottom: 0 }}>Shared {formatDateTimeIST(patient.consultation_date)}</p>
           </div>
         </div>
 
@@ -348,7 +383,7 @@ export default function PatientDetail() {
                   <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Last Screening</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {new Date(latestS.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatDateOnlyIST(latestS.completed_at)}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                       {latestS.age_group_used ? `Age group: ${latestS.age_group_used}` : 'No age group recorded'}
@@ -605,7 +640,7 @@ export default function PatientDetail() {
               {patient.screenings.map(s => (
                 <div key={s.id} className="screening-entry">
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="screening-date">{new Date(s.completed_at).toLocaleString()}</div>
+                    <div className="screening-date">{formatDateTimeIST(s.completed_at)}</div>
                     <div className="screening-entry-info">
                       <span>Score: <strong>{s.raw_score}/10</strong></span>
                       {s.family_asd && <span>Family ASD: <strong>{s.family_asd}</strong></span>}
@@ -642,6 +677,276 @@ export default function PatientDetail() {
           )}
         </div>
 
+        {/* ── Clinical Assessment Dashboard ── */}
+        <div className="section-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, paddingBottom: 12, borderBottom: '1px solid var(--border)', width: '100%' }}>Clinical Assessment Dashboard</h2>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button className="btn btn-primary btn-sm" onClick={downloadPatientReport} disabled={clinicalData.pdfLoading}>
+              {clinicalData.pdfLoading ? 'Generating...' : '📄 Download PDF Report'}
+            </button>
+          </div>
+
+          {/* Risk Indicators Banner */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: clinicalSummary?.risk_indicators?.length ? '#dc2626' : '#16a34a', margin: '0 0 0.5rem' }}>
+              {clinicalSummary?.risk_indicators?.length ? '⚠ Clinical Risk Indicators' : '✓ No Risk Indicators Flagged'}
+            </h3>
+            {clinicalSummary?.risk_indicators?.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {clinicalSummary.risk_indicators.map((ri, i) => {
+                  const bgMap = { critical: '#fef2f2', high: '#fff7ed', moderate: '#fffbeb' }
+                  const colorMap = { critical: '#dc2626', high: '#ea580c', moderate: '#d97706' }
+                  const iconMap = { critical: '🚨', high: '🔴', moderate: '🟡' }
+                  return (
+                    <div key={i} style={{
+                      padding: '0.6rem 0.8rem', borderRadius: 8, fontSize: '0.85rem',
+                      background: bgMap[ri.level] || '#f8fafc',
+                      borderLeft: `3px solid ${colorMap[ri.level] || '#94a3b8'}`,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                      <span>{iconMap[ri.level] || 'ℹ️'}</span>
+                      <strong style={{ color: colorMap[ri.level] || '#64748b' }}>{ri.source}:</strong>
+                      <span>{ri.detail}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Based on available assessment data, no clinical risk indicators have been triggered.</p>
+            )}
+          </div>
+
+          {/* Assessment Completion Status */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.75rem' }}>📊 Assessment Completion Status</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
+              {[
+                { label: 'AQ-10 Screening', done: (clinicalSummary?.aq10?.total_assessments || 0) > 0, count: clinicalSummary?.aq10?.total_assessments || 0 },
+                { label: 'RAADS-R', done: additionalScreenings.some(s => s.instrument === 'raads_r'), count: additionalScreenings.filter(s => s.instrument === 'raads_r').length },
+                { label: 'CAST', done: additionalScreenings.some(s => s.instrument === 'cast'), count: additionalScreenings.filter(s => s.instrument === 'cast').length },
+                { label: 'SCQ', done: additionalScreenings.some(s => s.instrument === 'scq'), count: additionalScreenings.filter(s => s.instrument === 'scq').length },
+                { label: 'SRS-2', done: additionalScreenings.some(s => s.instrument === 'srs_2'), count: additionalScreenings.filter(s => s.instrument === 'srs_2').length },
+                { label: 'PHQ-9 (Depression)', done: comorbidityScreenings.some(s => s.instrument === 'phq9'), count: comorbidityScreenings.filter(s => s.instrument === 'phq9').length },
+                { label: 'GAD-7 (Anxiety)', done: comorbidityScreenings.some(s => s.instrument === 'gad7'), count: comorbidityScreenings.filter(s => s.instrument === 'gad7').length },
+                { label: 'ASRS (ADHD)', done: comorbidityScreenings.some(s => s.instrument === 'asrs'), count: comorbidityScreenings.filter(s => s.instrument === 'asrs').length },
+                { label: 'Behavioral Log', done: clinicalData.observations.length > 0, count: clinicalData.observations.length },
+                { label: 'Cognitive Tasks', done: (clinicalSummary?.cognitive_profile && Object.keys(clinicalSummary.cognitive_profile).length > 0), count: Object.values(clinicalSummary?.cognitive_profile || {}).reduce((a, v) => a + v.sessions, 0) },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  padding: '0.5rem 0.6rem', borderRadius: 8, fontSize: '0.78rem',
+                  background: item.done ? '#f0fdf4' : '#fefce8',
+                  border: `1px solid ${item.done ? '#bbf7d0' : '#fef08a'}`,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{ fontSize: '0.9rem' }}>{item.done ? '✅' : '⬜'}</span>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{item.label}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{item.done ? `${item.count} completed` : 'Not yet taken'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ASD Convergence */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>🧩 ASD Instrument Convergence</h3>
+            {clinicalSummary && Object.keys(clinicalSummary.asd_instruments || {}).length > 0 ? (
+              <div style={{ padding: '0.6rem', borderRadius: 8, background: clinicalSummary.asd_convergence === 'strong' ? '#fef2f2' : clinicalSummary.asd_convergence === 'moderate' ? '#fffbeb' : '#f0fdf4' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', color: clinicalSummary.asd_convergence === 'strong' ? '#dc2626' : clinicalSummary.asd_convergence === 'moderate' ? '#d97706' : '#16a34a' }}>
+                  {clinicalSummary.asd_convergence === 'strong' ? '⚠ Strong convergence' : clinicalSummary.asd_convergence === 'moderate' ? '⚡ Moderate convergence' : clinicalSummary.asd_convergence === 'mild' ? '→ Mild convergence' : '✓ No convergence'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: 8 }}>— {Object.keys(clinicalSummary.asd_instruments).length} instrument(s) completed</span>
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No additional ASD instruments completed yet. Cross-instrument convergence requires RAADS-R, CAST, SCQ, or SRS-2.</p>
+            )}
+          </div>
+
+          {/* Additional ASD Assessments */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>📋 Additional ASD Assessments</h3>
+            {additionalScreenings.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+                {(() => {
+                  const labels = { raads_r: 'RAADS-R', cast: 'CAST', scq: 'SCQ', srs_2: 'SRS-2' }
+                  const seen = new Set()
+                  return additionalScreenings.filter(s => { if (seen.has(s.instrument)) return false; seen.add(s.instrument); return true }).map(s => {
+                    const sevColors = { minimal: '#16a34a', mild: '#84cc16', moderate: '#d97706', severe: '#dc2626', clinical: '#dc2626' }
+                    const sevBg = { minimal: '#f0fdf4', mild: '#f7fee7', moderate: '#fffbeb', severe: '#fef2f2', clinical: '#fef2f2' }
+                    return (
+                      <div key={s.id} style={{ padding: '0.9rem', borderRadius: 10, border: '1px solid var(--border)', background: sevBg[s.severity] || 'var(--bg)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <strong style={{ fontSize: '0.95rem' }}>{labels[s.instrument] || s.instrument}</strong>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 12, background: sevBg[s.severity] || '#f1f5f9', color: sevColors[s.severity] || '#64748b', border: `1px solid ${sevColors[s.severity] || '#e2e8f0'}` }}>{s.severity || '—'}</span>
+                        </div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: sevColors[s.severity] || 'var(--text-primary)' }}>
+                          {s.total_score}<span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>/{s.max_score}</span>
+                        </div>
+                        {s.domain_scores && Object.keys(s.domain_scores).length > 0 && (
+                          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {Object.entries(s.domain_scores).map(([d, v]) => (
+                              <span key={d} style={{ fontSize: '0.7rem', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: 6 }}>{d.replace(/_/g, ' ')}: <strong>{v}</strong></span>
+                            ))}
+                          </div>
+                        )}
+                        {s.interpretation && <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.4 }}>{s.interpretation}</p>}
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 6 }}>{formatDateOnlyIST(s.completed_at)}</div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No additional ASD assessments completed. RAADS-R, CAST, SCQ, and SRS-2 provide supplementary evidence beyond the AQ-10.</p>
+            )}
+          </div>
+
+          {/* Comorbidity Profile */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>🩺 Comorbidity Profile</h3>
+            {comorbidityScreenings.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+                {(() => {
+                  const labels = { phq9: 'Depression (PHQ-9)', gad7: 'Anxiety (GAD-7)', asrs: 'ADHD (ASRS)' }
+                  const icons = { phq9: '😔', gad7: '😰', asrs: '⚡' }
+                  const sevColors = { minimal: '#16a34a', mild: '#84cc16', moderate: '#d97706', moderately_severe: '#ea580c', severe: '#dc2626' }
+                  const sevBg = { minimal: '#f0fdf4', mild: '#f7fee7', moderate: '#fffbeb', moderately_severe: '#fff7ed', severe: '#fef2f2' }
+                  const seen = new Set()
+                  return comorbidityScreenings.filter(s => { if (seen.has(s.instrument)) return false; seen.add(s.instrument); return true }).map(s => (
+                    <div key={s.id} style={{ padding: '0.9rem', borderRadius: 10, border: '1px solid var(--border)', background: sevBg[s.severity] || 'var(--bg)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong style={{ fontSize: '0.95rem' }}>{icons[s.instrument] || '📊'} {labels[s.instrument] || s.instrument}</strong>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 12, background: sevBg[s.severity] || '#f1f5f9', color: sevColors[s.severity] || '#64748b', border: `1px solid ${sevColors[s.severity] || '#e2e8f0'}` }}>{(s.severity || '—').replace(/_/g, ' ')}</span>
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: sevColors[s.severity] || 'var(--text-primary)' }}>
+                        {s.total_score}<span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>/{s.max_score}</span>
+                      </div>
+                      {s.clinical_flags && Object.keys(s.clinical_flags).length > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          {Object.entries(s.clinical_flags).map(([flag, val]) => (
+                            val ? (
+                              <span key={flag} style={{ display: 'inline-block', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 8, marginRight: 4, background: flag === 'suicidal_ideation' ? '#fef2f2' : '#fffbeb', color: flag === 'suicidal_ideation' ? '#dc2626' : '#d97706', border: `1px solid ${flag === 'suicidal_ideation' ? '#fecaca' : '#fde68a'}` }}>
+                                {flag === 'suicidal_ideation' ? '🚨 Suicidal Ideation Flag' : `⚠ ${flag.replace(/_/g, ' ')}`}
+                              </span>
+                            ) : null
+                          ))}
+                        </div>
+                      )}
+                      {s.interpretation && <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.4 }}>{s.interpretation}</p>}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 6 }}>{formatDateOnlyIST(s.completed_at)}</div>
+                    </div>
+                  ))
+                })()}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No comorbidity screenings completed. PHQ-9 (depression), GAD-7 (anxiety), and ASRS (ADHD) identify co-occurring conditions.</p>
+            )}
+          </div>
+
+          {/* Behavioral Observations */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>📝 Behavioral Observations ({clinicalData.observations.length})</h3>
+            {clinicalData.observations.length > 0 ? (
+              <>
+                {clinicalSummary?.behavior_summary?.top_patterns?.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem', padding: '0.7rem', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Top Behavior Patterns</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {clinicalSummary.behavior_summary.top_patterns.map((p, i) => (
+                        <span key={i} style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 12, background: 'rgba(99,102,241,0.1)', color: '#6366f1', fontWeight: 600 }}>
+                          {p.category.replace(/_/g, ' ')} / {p.behavior.replace(/_/g, ' ')} × {p.count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {clinicalSummary?.behavior_summary?.severity_distribution && (() => {
+                  const sd = clinicalSummary.behavior_summary.severity_distribution
+                  const total = (sd.mild || 0) + (sd.moderate || 0) + (sd.severe || 0)
+                  if (total === 0) return null
+                  return (
+                    <div style={{ display: 'flex', gap: 8, marginBottom: '0.75rem' }}>
+                      {[['mild', '#38a169'], ['moderate', '#d69e2e'], ['severe', '#e53e3e']].map(([k, c]) => (
+                        sd[k] > 0 ? <span key={k} style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 12, background: `${c}18`, color: c }}>{k}: {sd[k]} ({Math.round(sd[k] / total * 100)}%)</span> : null
+                      ))}
+                    </div>
+                  )
+                })()}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 300, overflowY: 'auto' }}>
+                  {clinicalData.observations.slice(0, 20).map(o => (
+                    <div key={o.id} style={{ padding: '0.75rem', background: 'var(--surface)', borderRadius: 8, borderLeft: `3px solid ${o.intensity === 'severe' ? '#e53e3e' : o.intensity === 'moderate' ? '#d69e2e' : '#38a169'}`, fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <strong style={{ textTransform: 'capitalize' }}>{(o.category || '').replace(/_/g, ' ')} – {(o.behavior_type || '').replace(/_/g, ' ')}</strong>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{formatDateOnlyIST(o.observation_date || o.created_at)}</span>
+                      </div>
+                      {o.antecedent && <div style={{ marginTop: 4, fontSize: '0.78rem' }}><strong>A:</strong> {o.antecedent}</div>}
+                      {o.behavior_description && <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}><strong>B:</strong> {o.behavior_description}</div>}
+                      {o.consequence && <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}><strong>C:</strong> {o.consequence}</div>}
+                      <div style={{ display: 'flex', gap: 10, marginTop: 4, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {o.frequency != null && <span>Freq: {o.frequency}</span>}
+                        {o.duration_minutes != null && <span>Duration: {o.duration_minutes} min</span>}
+                        {o.setting && <span>Setting: {o.setting}</span>}
+                        {o.intensity && <span style={{ fontWeight: 700, color: o.intensity === 'severe' ? '#e53e3e' : o.intensity === 'moderate' ? '#d69e2e' : '#38a169' }}>{o.intensity}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No behavioral observations logged. ABC recording identifies triggers and behavioral patterns.</p>
+            )}
+          </div>
+
+          {/* Referral Pathway */}
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>🔗 Referral Pathway</h3>
+            {clinicalData.referrals.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {clinicalData.referrals.map(r => (
+                  <div key={r.id} style={{ padding: '0.75rem', background: 'var(--surface)', borderRadius: 8, fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ textTransform: 'capitalize' }}>{(r.referral_type || '').replace(/_/g, ' ')}</strong>
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <span style={{ padding: '0.15rem 0.5rem', borderRadius: 8, fontSize: '0.7rem', fontWeight: 600, background: r.urgency === 'urgent' ? '#fed7d7' : r.urgency === 'soon' ? '#fef3c7' : '#e2e8f0', color: r.urgency === 'urgent' ? '#c53030' : r.urgency === 'soon' ? '#b45309' : '#666' }}>{r.urgency}</span>
+                        <span style={{ padding: '0.15rem 0.5rem', borderRadius: 8, fontSize: '0.7rem', background: r.status === 'completed' ? '#dcfce7' : r.status === 'scheduled' ? '#dbeafe' : '#e2e8f0', color: r.status === 'completed' ? '#16a34a' : r.status === 'scheduled' ? '#2563eb' : '#666' }}>{r.status}</span>
+                      </div>
+                    </div>
+                    {r.reason && <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.3rem 0 0' }}>{r.reason}</p>}
+                    {r.provider_name && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>Provider: {r.provider_name}</div>}
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>{formatDateOnlyIST(r.created_at)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No referrals created. AI-generated referral suggestions are available based on assessment data.</p>
+            )}
+          </div>
+
+          {/* Cognitive Task Profile */}
+          <div style={{ padding: '0.8rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>🧠 Cognitive Task Profile</h3>
+            {clinicalSummary && Object.keys(clinicalSummary.cognitive_profile || {}).length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.6rem' }}>
+                {Object.entries(clinicalSummary.cognitive_profile).map(([k, v]) => {
+                  const icons = { executive_function: '🧠', social_cognition: '🤝', joint_attention: '👁️', sensory_processing: '🎧' }
+                  return (
+                    <div key={k} style={{ padding: '0.7rem', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>{icons[k] || '📊'} {v.label}</div>
+                      <div style={{ fontSize: '1.3rem', fontWeight: 800 }}>{v.sessions}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>sessions • max Lv.{v.max_difficulty}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No cognitive task sessions completed. Tasks assess executive function, social cognition, joint attention, and sensory processing.</p>
+            )}
+          </div>
+        </div>
+
         <div className="section-card">
           <h2>Notes</h2>
           <div className="note-input-area">
@@ -656,7 +961,7 @@ export default function PatientDetail() {
               {patient.notes.map(n => (
                 <div key={n.id} className="note-entry">
                   <p className="note-content">{n.content}</p>
-                  <span className="note-time">{new Date(n.created_at).toLocaleString()}</span>
+                  <span className="note-time">{formatDateTimeIST(n.created_at)}</span>
                 </div>
               ))}
             </div>
@@ -667,9 +972,9 @@ export default function PatientDetail() {
 
         {/* Patient Resources */}
         <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="section-card-header">
             <h2 style={{ margin: 0 }}>Patient Resources</h2>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="section-card-actions">
               <button className="btn btn-sm btn-secondary" onClick={handleToggleGlobalResources}>
                 {showGlobalResources ? 'Hide Library' : '📚 Browse Library'}
               </button>
@@ -818,7 +1123,7 @@ export default function PatientDetail() {
                 {journals.map(j => (
                   <div key={j.id} className="journal-entry-item">
                     <div className="journal-entry-header">
-                      <span className="journal-entry-date">{new Date(j.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span className="journal-entry-date">{formatDateLongIST(j.created_at)}</span>
                       <div style={{ display: 'flex', gap: 10 }}>
                         {j.mood_score && <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{moodEmoji(j.mood_score)} Mood: {j.mood_score}/10</span>}
                         {j.stress_score && <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>⚡ Stress: {j.stress_score}/10</span>}
@@ -862,7 +1167,7 @@ export default function PatientDetail() {
                   <div className="modal-section">
                     <h4>Pre-Screening Information</h4>
                     <div className="detail-grid">
-                      <div className="detail-item"><span className="detail-label">Date</span><span className="detail-value">{new Date(screeningDetail.completed_at).toLocaleString()}</span></div>
+                      <div className="detail-item"><span className="detail-label">Date</span><span className="detail-value">{formatDateTimeIST(screeningDetail.completed_at)}</span></div>
                       <div className="detail-item"><span className="detail-label">Score</span><span className="detail-value">{screeningDetail.raw_score}/10</span></div>
                       <div className="detail-item"><span className="detail-label">Risk Level</span><span className={`badge badge-${screeningDetail.risk_level === 'low' ? 'success' : screeningDetail.risk_level === 'high' ? 'error' : 'warning'}`}>{screeningDetail.risk_level}</span></div>
                       <div className="detail-item"><span className="detail-label">Age Group</span><span className="detail-value">{screeningDetail.age_group_used || '—'}</span></div>
@@ -956,8 +1261,6 @@ export default function PatientDetail() {
         </div>
       )}
     </div>
-    <Modal {...modal} />
-    </>
   )
 }
 

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NavBar from '../components/NavBar'
-import Modal from '../components/Modal'
 import api from '../services/api'
+import { formatDateLongIST } from '../utils/formatDate'
 import './Journal.css'
 
 export default function Journal() {
@@ -23,7 +23,6 @@ export default function Journal() {
   const formRef = useRef(null)
   const textareaRef = useRef(null)
   const [expandedEntries, setExpandedEntries] = useState({})
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
 
   useEffect(() => { fetchEntries() }, [])
 
@@ -81,28 +80,11 @@ export default function Journal() {
   }, [showForm])
 
   const deleteEntry = async (id) => {
-    setModal({
-      open: true,
-      title: 'Confirm Delete',
-      message: 'Delete this journal entry? This cannot be undone.',
-      onClose: () => setModal({ ...modal, open: false }),
-      primaryAction: {
-        label: 'Delete',
-        onClick: async () => {
-          setModal({ ...modal, open: false })
-          try {
-            await api.delete(`/journal/entries/${id}`)
-            fetchEntries()
-          } catch {
-            setModal({ open: true, title: 'Error', message: 'Failed to delete entry', onClose: () => setModal({ ...modal, open: false }) })
-          }
-        }
-      },
-      secondaryAction: {
-        label: 'Cancel',
-        onClick: () => setModal({ ...modal, open: false })
-      }
-    })
+    if (!confirm('Delete this journal entry? This cannot be undone.')) return
+    try {
+      await api.delete(`/journal/entries/${id}`)
+      fetchEntries()
+    } catch { alert('Failed to delete entry') }
   }
 
   const cancelForm = () => {
@@ -230,7 +212,7 @@ export default function Journal() {
               <div key={entry.id} className="journal-entry-card section-card">
                 <div className="entry-header">
                   <div className="entry-meta">
-                    <span className="entry-date">{new Date(entry.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span className="entry-date">{formatDateLongIST(entry.created_at)}</span>
                     {entry.is_shared && <span className="shared-badge">Shared</span>}
                   </div>
                   <div className="entry-scores">
@@ -257,7 +239,6 @@ export default function Journal() {
           </div>
         )}
       </div>
-      <Modal {...modal} />
     </div>
   )
 }

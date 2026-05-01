@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import NavBar from '../../components/NavBar'
-import Modal from '../../components/Modal'
+import { formatDateOnlyIST } from '../../utils/formatDate'
 import './UserManagement.css'
 
 function UserManagement() {
@@ -20,7 +20,6 @@ function UserManagement() {
   const [patientsList, setPatientsList] = useState([])
   const [assignError, setAssignError] = useState(null)
   const [pagination, setPagination] = useState({ skip: 0, limit: 20 })
-  const [modal, setModal] = useState({ open: false, title: '', message: '', onClose: () => setModal({ ...modal, open: false }) })
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -76,39 +75,22 @@ function UserManagement() {
     try {
       await api.patch(`/admin/users/${userId}/role`, { role: newRole })
       fetchUsers()
-    } catch (err) { setModal({ open: true, title: 'Error', message: 'Failed to update role', onClose: () => setModal({ ...modal, open: false }) }) }
+    } catch (err) { alert('Failed to update role') }
   }
 
   const updateUserStatus = async (userId, isActive) => {
     try {
       await api.patch(`/admin/users/${userId}/status`, { is_active: isActive })
       fetchUsers()
-    } catch (err) { setModal({ open: true, title: 'Error', message: 'Failed to update status', onClose: () => setModal({ ...modal, open: false }) }) }
+    } catch (err) { alert('Failed to update status') }
   }
 
   const deleteUser = async (userId, userName) => {
-    setModal({
-      open: true,
-      title: 'Confirm Delete',
-      message: `Delete ${userName}? This cannot be undone.`,
-      onClose: () => setModal({ ...modal, open: false }),
-      primaryAction: {
-        label: 'Delete',
-        onClick: async () => {
-          setModal({ ...modal, open: false })
-          try {
-            await api.delete(`/admin/users/${userId}`)
-            fetchUsers()
-          } catch (err) {
-            setModal({ open: true, title: 'Error', message: 'Failed to delete user', onClose: () => setModal({ ...modal, open: false }) })
-          }
-        }
-      },
-      secondaryAction: {
-        label: 'Cancel',
-        onClick: () => setModal({ ...modal, open: false })
-      }
-    })
+    if (!confirm(`Delete ${userName}? This cannot be undone.`)) return
+    try {
+      await api.delete(`/admin/users/${userId}`)
+      fetchUsers()
+    } catch (err) { alert('Failed to delete user') }
   }
 
   const handleFilterChange = (key, value) => {
@@ -149,15 +131,12 @@ function UserManagement() {
               </select>
             </div>
             <button className="btn btn-primary" style={{ alignSelf: 'flex-end', height: 44 }} onClick={async () => {
-              if (!assign.patient_id || !assign.professional_id) {
-                setModal({ open: true, title: 'Error', message: 'Choose both patient and professional', onClose: () => setModal({ ...modal, open: false }) })
-                return
-              }
+              if (!assign.patient_id || !assign.professional_id) return alert('Choose both patient and professional')
               try {
                 await api.post('/admin/assign-patient', { patient_id: Number(assign.patient_id), professional_id: Number(assign.professional_id) })
-                setModal({ open: true, title: 'Success', message: 'Patient assigned to professional', onClose: () => setModal({ ...modal, open: false }) })
+                alert('Patient assigned to professional')
                 fetchUsers()
-              } catch (err) { setModal({ open: true, title: 'Error', message: 'Failed to assign patient', onClose: () => setModal({ ...modal, open: false }) }) }
+              } catch (err) { alert('Failed to assign patient') }
             }}>Assign</button>
           </div>
         </div>
@@ -234,34 +213,14 @@ function UserManagement() {
                           {user.is_active ? '● Active' : '○ Inactive'}
                         </button>
                       </td>
-                      <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                      <td>{formatDateOnlyIST(user.created_at)}</td>
                       <td>
                         <div className="td-actions" style={{ justifyContent: 'flex-end' }}>
                           {user.role === 'professional' && !user.is_verified && (
-                            <button className="btn btn-sm" style={{ background: 'var(--secondary)', color: 'white', border: 'none' }} onClick={() => {
-                              setModal({
-                                open: true,
-                                title: 'Confirm Verification',
-                                message: `Verify ${user.first_name} ${user.last_name}?`,
-                                onClose: () => setModal({ ...modal, open: false }),
-                                primaryAction: {
-                                  label: 'Verify',
-                                  onClick: async () => {
-                                    setModal({ ...modal, open: false })
-                                    try {
-                                      await api.patch(`/admin/professionals/${user.id}/verify`, { is_verified: true })
-                                      fetchUsers()
-                                      setModal({ open: true, title: 'Success', message: 'Verified', onClose: () => setModal({ ...modal, open: false }) })
-                                    } catch {
-                                      setModal({ open: true, title: 'Error', message: 'Failed to verify', onClose: () => setModal({ ...modal, open: false }) })
-                                    }
-                                  }
-                                },
-                                secondaryAction: {
-                                  label: 'Cancel',
-                                  onClick: () => setModal({ ...modal, open: false })
-                                }
-                              })
+                            <button className="btn btn-sm" style={{ background: 'var(--secondary)', color: 'white', border: 'none' }} onClick={async () => {
+                              if (!confirm(`Verify ${user.first_name} ${user.last_name}?`)) return
+                              try { await api.patch(`/admin/professionals/${user.id}/verify`, { is_verified: true }); fetchUsers(); alert('Verified') }
+                              catch { alert('Failed to verify') }
                             }}>Verify</button>
                           )}
                           {user.role === 'professional' && user.is_verified && (
@@ -286,7 +245,6 @@ function UserManagement() {
           )}
         </div>
       </div>
-      <Modal {...modal} />
     </div>
   )
 }

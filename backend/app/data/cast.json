@@ -1,0 +1,61 @@
+{
+  "instrument": "cast",
+  "title": "Childhood Autism Spectrum Test (CAST)",
+  "description": "A 37-item parent/caregiver-report screening tool for identifying ASD traits in children aged 5-11 years. Based on Scott et al., 2002 and Baron-Cohen et al., 2009.",
+  "age_range": "5-11 years (Children)",
+  "scoring": {
+    "scale": "0 or 1 per item (Yes/No scoring — direction varies by question)",
+    "max_score": 31,
+    "non_scored_items": [1, 4, 12, 22, 29, 37],
+    "severity_levels": [
+      {"range": [0, 11], "label": "non_clinical", "description": "Score within normal range"},
+      {"range": [12, 14], "label": "mild", "description": "Borderline — monitoring recommended"},
+      {"range": [15, 31], "label": "clinical", "description": "Above clinical threshold — comprehensive ASD assessment recommended"}
+    ],
+    "clinical_threshold": 15,
+    "clinical_note": "The CAST is a screening tool, not a diagnostic instrument. Scores ≥15 strongly suggest the need for a comprehensive ASD evaluation."
+  },
+  "questions": [
+    {"id": 1, "text": "Does your child join in playing games with other children easily?", "scored": false},
+    {"id": 2, "text": "Does your child come up to you spontaneously for a chat?", "score_if": "no"},
+    {"id": 3, "text": "Was your child speaking by 2 years old?", "score_if": "no"},
+    {"id": 4, "text": "Does your child enjoy sports?", "scored": false},
+    {"id": 5, "text": "Is it important to your child to fit in with the peer group?", "score_if": "no"},
+    {"id": 6, "text": "Does your child appear to notice unusual details that others miss?", "score_if": "yes"},
+    {"id": 7, "text": "Does your child tend to take things literally?", "score_if": "yes"},
+    {"id": 8, "text": "When your child was 3 years old, did he/she spend a lot of time pretend playing (e.g., pretending to be a superhero, or holding teddy's tea parties)?", "score_if": "no"},
+    {"id": 9, "text": "Does your child like to do things over and over again, in the same way all the time?", "score_if": "yes"},
+    {"id": 10, "text": "Does your child find it easy to interact with other children?", "score_if": "no"},
+    {"id": 11, "text": "Can your child keep a two-way conversation going?", "score_if": "no"},
+    {"id": 12, "text": "Can your child read appropriately for his/her age?", "scored": false},
+    {"id": 13, "text": "Does your child mostly have the same interests as his/her peers?", "score_if": "no"},
+    {"id": 14, "text": "Does your child have an interest which takes up so much time that he/she does little else?", "score_if": "yes"},
+    {"id": 15, "text": "Does your child have friends, rather than just acquaintances?", "score_if": "no"},
+    {"id": 16, "text": "Does your child often bring you things he/she is interested in to show you?", "score_if": "no"},
+    {"id": 17, "text": "Does your child enjoy joking around?", "score_if": "no"},
+    {"id": 18, "text": "Does your child have difficulty understanding the rules of polite behavior?", "score_if": "yes"},
+    {"id": 19, "text": "Does your child appear to have an unusual memory for details?", "score_if": "yes"},
+    {"id": 20, "text": "Is your child's voice unusual (e.g., overly adult, flat, or very monotonous)?", "score_if": "yes"},
+    {"id": 21, "text": "Are people important to your child?", "score_if": "no"},
+    {"id": 22, "text": "Can your child dress him/herself?", "scored": false},
+    {"id": 23, "text": "Is your child good at turn-taking in conversation?", "score_if": "no"},
+    {"id": 24, "text": "Does your child play imaginatively with other children, and engage in role-play?", "score_if": "no"},
+    {"id": 25, "text": "Does your child often do or say things that are tactless or socially inappropriate?", "score_if": "yes"},
+    {"id": 26, "text": "Can your child count to 50 without leaving out any numbers?", "score_if": "no"},
+    {"id": 27, "text": "Does your child make normal eye contact?", "score_if": "no"},
+    {"id": 28, "text": "Does your child have any unusual and repetitive movements?", "score_if": "yes"},
+    {"id": 29, "text": "Is your child's social behaviour very one-sided and always on his/her own terms?", "scored": false},
+    {"id": 30, "text": "Does your child sometimes say 'you' or 'he/she' when he/she means 'I'?", "score_if": "yes"},
+    {"id": 31, "text": "Does your child prefer imaginative activities such as play-acting or story-telling, rather than numbers or lists of facts?", "score_if": "no"},
+    {"id": 32, "text": "Does your child sometimes lose the listener because of not explaining what he/she is talking about?", "score_if": "yes"},
+    {"id": 33, "text": "Can your child ride a bicycle (even if with stabilizers)?", "score_if": "no"},
+    {"id": 34, "text": "Does your child try to impose routines on him/herself, or on others, in such a way that it causes problems?", "score_if": "yes"},
+    {"id": 35, "text": "Does your child care how he/she is perceived by the rest of the group?", "score_if": "no"},
+    {"id": 36, "text": "Does your child often turn conversations to his/her favourite subject rather than following what the other person wants to talk about?", "score_if": "yes"},
+    {"id": 37, "text": "Does your child have odd or unusual phrases?", "scored": false}
+  ],
+  "response_options": [
+    {"value": "yes", "text": "Yes"},
+    {"value": "no", "text": "No"}
+  ]
+}

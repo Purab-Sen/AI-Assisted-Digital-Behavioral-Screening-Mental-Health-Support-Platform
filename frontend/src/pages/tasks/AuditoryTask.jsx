@@ -18,6 +18,9 @@ function AuditoryTask({ config, onComplete }) {
   const gapMs = config.gap_ms || 500;
   const totalTrials = config.total_trials || 30;
 
+  const catchDiff = config.catch_difference_hz || 200; // Very obvious difference for catch trials
+  const catchInterval = 10; // Insert a catch trial every N trials
+
   const [currentDiff, setCurrentDiff] = useState(initialDiff);
   const [trialIndex, setTrialIndex] = useState(0);
   const [phase, setPhase] = useState('ready');
@@ -27,6 +30,8 @@ function AuditoryTask({ config, onComplete }) {
   const [reversals, setReversals] = useState([]);
   const [lastDirection, setLastDirection] = useState(null);
   const [trialStartTime, setTrialStartTime] = useState(null);
+  const [isCatchTrial, setIsCatchTrial] = useState(false);
+  const [catchResults, setCatchResults] = useState({ correct: 0, total: 0 });
   const audioCtxRef = useRef(null);
 
   // Initialize audio context on first interaction
@@ -65,11 +70,16 @@ function AuditoryTask({ config, onComplete }) {
   }, []);
 
   const startTrial = useCallback(async () => {
+    // Insert catch trial every catchInterval trials (except first)
+    const isCatch = trialIndex > 0 && trialIndex % catchInterval === 0;
+    setIsCatchTrial(isCatch);
+    const activeDiff = isCatch ? catchDiff : currentDiff;
+
     const isHigherFirst = Math.random() < 0.5;
     setHigherFirst(isHigherFirst);
 
-    const freq1 = isHigherFirst ? baseFreq + currentDiff : baseFreq;
-    const freq2 = isHigherFirst ? baseFreq : baseFreq + currentDiff;
+    const freq1 = isHigherFirst ? baseFreq + activeDiff : baseFreq;
+    const freq2 = isHigherFirst ? baseFreq : baseFreq + activeDiff;
 
     setPhase('tone1');
     await playTone(freq1, toneDuration);
@@ -116,6 +126,7 @@ function AuditoryTask({ config, onComplete }) {
         { metric_name: 'accuracy', metric_value: Math.round(accuracy * 100) / 100 },
         { metric_name: 'reversals', metric_value: reversals.length },
         { metric_name: 'avg_reaction_time', metric_value: Math.round(avgRT) },
+        { metric_name: 'catch_trial_accuracy', metric_value: catchResults.total > 0 ? Math.round((catchResults.correct / catchResults.total) * 100) : 100 },
       ]);
     }
   }, [trialIndex, totalTrials, phase]);
@@ -126,7 +137,22 @@ function AuditoryTask({ config, onComplete }) {
     const rt = Date.now() - trialStartTime;
     const correct = choseFirst === higherFirst;
 
-    setResponses(prev => [...prev, { correct, rt, diff: currentDiff }]);
+    setResponses(prev => [...prev, { correct, rt, diff: currentDiff, isCatch: isCatchTrial }]);
+
+    // Track catch trial performance separately
+    if (isCatchTrial) {
+      setCatchResults(prev => ({
+        correct: prev.correct + (correct ? 1 : 0),
+        total: prev.total + 1,
+      }));
+      // Don't adjust staircase for catch trials
+      setPhase('feedback');
+      setTimeout(() => {
+        setTrialIndex(prev => prev + 1);
+        startTrial();
+      }, 1000);
+      return;
+    }
 
     if (correct) {
       const newConsec = consecutiveCorrect + 1;

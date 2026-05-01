@@ -24,6 +24,7 @@ class User(Base):
     ethnicity = Column(String(100), nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_email_verified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -48,5 +49,27 @@ class User(Base):
         "ProfessionalProfile",
         back_populates="user",
         uselist=False,
+        cascade="all, delete-orphan"
+    )
+
+    # Additional screening instruments (RAADS-R, CAST, SCQ, SRS-2)
+    additional_screenings = relationship("AdditionalScreening", back_populates="user", cascade="all, delete-orphan")
+
+    # Comorbidity screenings (PHQ-9, GAD-7, ASRS)
+    comorbidity_screenings = relationship("ComorbidityScreening", back_populates="user", cascade="all, delete-orphan")
+
+    # Structured behavioral observations
+    behavioral_observations = relationship(
+        "BehavioralObservation",
+        foreign_keys="[BehavioralObservation.user_id]",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # Referrals
+    referrals = relationship(
+        "Referral",
+        foreign_keys="[Referral.user_id]",
+        back_populates="user",
         cascade="all, delete-orphan"
     )

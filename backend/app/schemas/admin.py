@@ -21,6 +21,7 @@ class UserListResponse(BaseModel):
     is_active: bool
     is_verified: Optional[bool] = None  # from professional_profile if exists
     professional_profile: Optional[ProfessionalProfileResponse] = None
+    created_at: datetime
     updated_at: datetime
     
     class Config:

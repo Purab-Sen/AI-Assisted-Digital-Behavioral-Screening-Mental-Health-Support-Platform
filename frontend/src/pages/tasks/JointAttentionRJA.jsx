@@ -173,7 +173,6 @@ function JointAttentionRJA({ config, onComplete }) {
       onComplete([
         { metric_name: 'accuracy',                 metric_value: Math.round(accuracy * 100) / 100 },
         { metric_name: 'avg_response_latency',     metric_value: Math.round(avgLatency) },
-        { metric_name: 'spatial_accuracy',          metric_value: Math.round(accuracy * 100) / 100 },
         { metric_name: 'prompt_independence_score', metric_value: Math.round(indep * 100) / 100 },
       ]);
     }
@@ -216,19 +215,6 @@ function JointAttentionRJA({ config, onComplete }) {
         }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <span style={{ fontSize: 80, lineHeight: 1, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.18))' }}>{CHARACTER}</span>
-            {/* Rotating direction indicator arrow */}
-            {phase === 'cue' && (
-              <span style={{
-                position: 'absolute', top: '50%', left: '50%',
-                fontSize: 32, lineHeight: 1,
-                transform: `translate(-50%, -50%) rotate(${dir.angle}deg) translateX(60px)`,
-                transition: 'transform 0.4s ease',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.2))',
-                animation: 'TPpulse 1.2s ease infinite',
-              }}>
-                ➤
-              </span>
-            )}
           </div>
 
           {/* Voice cue */}
@@ -253,13 +239,13 @@ function JointAttentionRJA({ config, onComplete }) {
             </div>
           )}
 
-          {/* Gaze only */}
+          {/* Gaze only — show directional arrow as subtle cue */}
           {phase === 'cue' && cueStep === 3 && (
             <div style={{
-              display: 'flex', gap: 8, marginTop: 8, fontSize: 36,
-              animation: 'TPbounceIn .3s ease',
+              display: 'flex', gap: 8, marginTop: 8, fontSize: 44,
+              animation: 'TPbounceIn .3s ease', opacity: 0.7,
             }}>
-              {dir.gaze}&nbsp;<span style={{ fontSize: 24 }}>{dir.arrow}</span>
+              {dir.arrow}
             </div>
           )}
         </div>

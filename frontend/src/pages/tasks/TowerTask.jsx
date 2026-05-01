@@ -10,6 +10,44 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 const DISK_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
 
+// BFS to compute true optimal (minimum) number of moves from start to goal
+function computeOptimalMoves(startState, goalState) {
+  const serialize = (state) => JSON.stringify(state);
+  const goalKey = serialize(goalState);
+  const startKey = serialize(startState);
+  if (startKey === goalKey) return 0;
+
+  const visited = new Set([startKey]);
+  const queue = [{ state: startState, depth: 0 }];
+
+  while (queue.length > 0) {
+    const { state, depth } = queue.shift();
+    // Generate all valid moves
+    for (let from = 0; from < 3; from++) {
+      if (state[from].length === 0) continue;
+      const disk = state[from][state[from].length - 1];
+      for (let to = 0; to < 3; to++) {
+        if (from === to) continue;
+        if (state[to].length === 0 || state[to][state[to].length - 1] > disk) {
+          const next = state.map(peg => [...peg]);
+          next[from] = [...state[from]];
+          next[from].pop();
+          next[to] = [...state[to], disk];
+          const key = serialize(next);
+          if (key === goalKey) return depth + 1;
+          if (!visited.has(key)) {
+            visited.add(key);
+            queue.push({ state: next, depth: depth + 1 });
+          }
+        }
+      }
+    }
+    // Safety: cap BFS to avoid excessive computation for large puzzles
+    if (visited.size > 50000) return depth + 1;
+  }
+  return -1; // Should not happen for valid puzzles
+}
+
 function generateSolvablePuzzle(numDisks, minMoves, maxMoves) {
   // Start from solved state and work backwards with random moves
   const solved = [[], [], []];
@@ -46,7 +84,15 @@ function generateSolvablePuzzle(numDisks, minMoves, maxMoves) {
     goal[2].push(i);
   }
 
-  return { start, goal, optimalMoves: moves };
+  // Compute TRUE optimal using BFS (not the number of backward moves)
+  const optimalMoves = computeOptimalMoves(start, goal);
+
+  // Guard: if puzzle is already solved (0 moves) or trivial, regenerate
+  if (optimalMoves <= 0) {
+    return generateSolvablePuzzle(numDisks, minMoves, maxMoves);
+  }
+
+  return { start, goal, optimalMoves };
 }
 
 function TowerTask({ config, onComplete }) {

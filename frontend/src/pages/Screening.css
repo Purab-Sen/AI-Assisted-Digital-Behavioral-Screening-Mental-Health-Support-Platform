@@ -32,7 +32,7 @@
 .nav-dot.answered { background: var(--success-bg); border-color: var(--success); color: var(--success); }
 .nav-dot.answered.active { background: var(--primary-gradient); border-color: transparent; color: white; }
 .question-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-md); padding: 36px; margin-bottom: 28px; animation: fadeInUp 0.3s ease both; }
-.question-number { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.question-number { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .question-text { font-size: 19px; font-weight: 600; color: var(--text-primary); line-height: 1.55; margin-bottom: 28px; }
 .options-list { display: flex; flex-direction: column; gap: 12px; }
 .option-button { padding: 16px 20px; border: 2px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text-primary); font-family: inherit; font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; transition: all var(--transition-fast); display: flex; align-items: center; gap: 12px; }

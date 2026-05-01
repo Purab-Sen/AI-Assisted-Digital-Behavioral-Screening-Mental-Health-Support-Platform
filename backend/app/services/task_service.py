@@ -49,9 +49,8 @@ Try to be both fast and accurate. The task adapts to your performance.""",
                 "target_percentage": 0.30,
                 "isi_ms": 3000,
                 "stimulus_duration_ms": 2000,
-                "stimuli_type": "animals",
-                "stimuli": ["🐶", "🐱", "🐰", "🐻", "🐼", "🦊"],
-                "description": "1-Back with animal icons, 3s between items"
+                "practice_trials": 5,
+                "description": "1-Back with letters, 3s between items"
             },
             "2": {
                 "label": "2-Back Medium",
@@ -60,9 +59,8 @@ Try to be both fast and accurate. The task adapts to your performance.""",
                 "target_percentage": 0.30,
                 "isi_ms": 2000,
                 "stimulus_duration_ms": 1500,
-                "stimuli_type": "shapes",
-                "stimuli": ["◆", "●", "■", "▲", "★", "⬟", "⬠", "⏣"],
-                "description": "2-Back with abstract shapes, 2s between items"
+                "practice_trials": 5,
+                "description": "2-Back with letters, 2s between items"
             },
             "3": {
                 "label": "3-Back Hard",
@@ -71,8 +69,7 @@ Try to be both fast and accurate. The task adapts to your performance.""",
                 "target_percentage": 0.30,
                 "isi_ms": 1500,
                 "stimulus_duration_ms": 1000,
-                "stimuli_type": "mixed",
-                "stimuli": ["A", "B", "C", "D", "E", "F", "G", "H", "K", "L"],
+                "practice_trials": 5,
                 "description": "3-Back with letters, 1.5s between items"
             }
         },
